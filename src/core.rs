@@ -1,4 +1,4 @@
-/// Module containing all thing related to [core::camera::Camera]
+/// Module containing all thing related to [self::Camera]
 pub mod camera;
-/// Module containing all thing related to [core::object::Object]
+/// Module containing all thing related to [self::Object]
 pub mod object;

@@ -14,17 +14,17 @@
 
 #![deny(missing_docs)]
 
-/// Module containing all things related to [buffer::Buffer]
+/// Module containing all things related to [self::Buffer]
 pub mod buffer;
-/// Module containing all things related to [number::MultiSingularNumber]
+/// Module containing all things related to [self::MultiSingularNumber]
 pub mod number;
-/// Module containing all things related to [shader::Shader]
+/// Module containing all things related to [self::Shader]
 pub mod shader;
-/// Module containing all things related to [texture::Texture]
+/// Module containing all things related to [self::Texture]
 pub mod texture;
-/// Module containing all things related to [uniform::Uniform]
+/// Module containing all things related to [self::Uniform]
 pub mod uniform;
-/// Module containing all things related to [vertex::VertexArray]
+/// Module containing all things related to [self::VertexArray]
 pub mod vertex;
 
 // imports

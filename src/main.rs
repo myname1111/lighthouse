@@ -10,8 +10,13 @@ use core::{
     convert::{TryFrom, TryInto},
     mem::{size_of, size_of_val},
 };
+use device_query::{DeviceQuery, DeviceState, Keycode, MouseState};
 use image::DynamicImage;
-use lighthouse::graphics::{buffer::*, number::*, shader::*, texture::*, uniform::*, vertex::*, *};
+use lighthouse::core::camera::Camera;
+use lighthouse::{
+    core::{camera::DefaultCamera, object::ControllableByKey},
+    graphics::{buffer::*, number::*, shader::*, texture::*, uniform::*, vertex::*, *},
+};
 use std::fs;
 use std::time::*;
 
@@ -37,6 +42,9 @@ fn main() {
 
     let vert = vert.as_str();
     let frag = frag.as_str();
+
+    // Create a new device state
+    let device_state = DeviceState::new();
 
     let sdl = SDL::init(InitFlags::Everything).expect("couldn't start SDL");
     sdl.gl_set_attribute(SdlGlAttr::MajorVersion, 3).unwrap();
@@ -126,36 +134,46 @@ fn main() {
     img
   ).unwrap();
 
-    // matrices
-    let identity = glm::mat4(
-        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+    // Camera
+    let mut camera = DefaultCamera::new(
+        glm::vec3(0.0, 0.0, -2.0),
+        glm::vec3(0.0, 0.0, 0.0),
+        WIDTH.try_into().unwrap(),
+        HEIGHT.try_into().unwrap(),
+        0.0,
+        45.0,
     );
 
-    let model = identity.clone();
-    let view = identity.clone();
+    // // matrices
+    // let identity = glm::mat4(
+    //     1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+    // );
 
-    let view = glm::ext::translate(&view, glm::vec3(0.0, 0.0, -2.0));
-    let proj = glm::ext::perspective(
-        glm::radians(45.0),
-        (WIDTH as f32) / (HEIGHT as f32),
-        0.1,
-        100.0,
-    );
+    // let model = identity.clone();
+    // let view = identity.clone();
+
+    // let view = glm::ext::translate(&view, glm::vec3(0.0, 0.0, -2.0));
+    // let proj = glm::ext::perspective(
+    //     glm::radians(45.0),
+    //     (WIDTH as f32) / (HEIGHT as f32),
+    //     0.1,
+    //     100.0,
+    // );
 
     // uniforms
-    let _tex_col = Uniform::new(&shader_program, "tex_color");
-    // let matrix = Uniform::new(&shader_program, "matrix".to_string());
+    Uniform::new(&shader_program, "tex_color");
 
-    let model_uni = Uniform::new(&shader_program, "model");
-    let view_uni = Uniform::new(&shader_program, "view");
-    let proj_uni = Uniform::new(&shader_program, "proj");
+    // let model_uni = Uniform::new(&shader_program, "model");
+    // let view_uni = Uniform::new(&shader_program, "view");
+    // let proj_uni = Uniform::new(&shader_program, "proj");
 
     // enable depth buffer
     enable(GL_DEPTH_TEST);
-
-    // starting time
-    let now = Instant::now();
+    camera.matrix(0.1, 100.0, &shader_program, "camera_matrix");
     'main_loop: loop {
+        // Get pressed keyboard keys
+        let keys = device_state.get_keys();
+
         // handle events this frame
         while let Some(event) = sdl.poll_events().and_then(Result::ok) {
             match event {
@@ -166,17 +184,21 @@ fn main() {
 
         // now the events are clear.
         // here's where we could change the world state if we had some.
-        let model = glm::ext::rotate(
-            &model,
-            glm::radians(now.elapsed().as_secs_f32() * 10.),
-            glm::vec3(0.0, 1.0, 0.0),
-        );
+        // let model = glm::ext::rotate(
+        //     &model,
+        //     glm::radians(now.elapsed().as_secs_f32() * 10.),
+        //     glm::vec3(0.0, 1.0, 0.0),
+        // );
+
+        if !keys.is_empty() {
+            camera.on_key_press(keys);
+        }
 
         texture.bind(GL_TEXTURE_2D);
 
-        model_uni.set_uniform_matrix(false, model.as_array().map(|x| *x.as_array()));
-        view_uni.set_uniform_matrix(false, view.as_array().map(|x| *x.as_array()));
-        proj_uni.set_uniform_matrix(false, proj.as_array().map(|x| *x.as_array()));
+        // model_uni.set_uniform_matrix(false, model.as_array().map(|x| *x.as_array()));
+        // view_uni.set_uniform_matrix(false, view.as_array().map(|x| *x.as_array()));
+        // proj_uni.set_uniform_matrix(false, proj.as_array().map(|x| *x.as_array()));
 
         // and then draw!
         unsafe {

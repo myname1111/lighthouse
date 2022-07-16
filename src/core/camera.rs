@@ -1,12 +1,12 @@
+use super::object::{ControllableByKey, Object};
 use crate::graphics::{shader::ShaderProgram, uniform::Uniform};
+use device_query::Keycode;
 
-use super::object::Object;
 /// Camera trait
 pub trait Camera: Object {
     /// Creates a new matrix from the camera position and parameters
     fn matrix(
         &self,
-        fov_deg: f32,
         near_plane: f32,
         far_plane: f32,
         shader_program: &ShaderProgram,
@@ -24,12 +24,10 @@ pub struct DefaultCamera {
     pub width: i32,
     /// This field is supposed to store the height of the screen
     pub height: i32,
-    /// This field is supposed to store the positional speed of the camera
-    pub speed_pos: glm::Vector3<f32>,
-    /// This field is supposed to store the rotational speed of the camera
-    pub speed_rot: glm::Vector3<f32>,
     /// This field is supposed to store the sensitivity of the camera
     pub sensitivity: f32,
+    /// FOV of the camera(in degrees)
+    pub fov: f32,
 }
 
 impl DefaultCamera {
@@ -49,33 +47,27 @@ impl DefaultCamera {
         rot: glm::Vector3<f32>,
         width: i32,
         height: i32,
-        speed_pos: glm::Vector3<f32>,
-        speed_rot: glm::Vector3<f32>,
         sensitivity: f32,
+        fov: f32,
     ) -> Self {
         DefaultCamera {
             pos,
             rot,
             width,
             height,
-            speed_pos,
-            speed_rot,
             sensitivity,
+            fov,
         }
     }
 }
 
 impl Object for DefaultCamera {
-    fn update(&mut self) {
-        self.pos = self.pos + self.speed_pos;
-        self.rot = self.rot + self.speed_rot;
-    }
+    fn update(&mut self) {}
 }
 
 impl Camera for DefaultCamera {
     fn matrix(
         &self,
-        fov_deg: f32,
         near_plane: f32,
         far_plane: f32,
         shader_program: &ShaderProgram,
@@ -86,11 +78,10 @@ impl Camera for DefaultCamera {
         );
 
         let model = identity.clone();
-        let view = identity.clone();
 
-        let view = glm::ext::translate(&view, glm::vec3(0.0, 0.0, -2.0));
+        let view = glm::ext::look_at(self.pos, self.pos + self.rot, glm::vec3(0.0, 1.0, 0.0));
         let proj = glm::ext::perspective::<f32>(
-            fov_deg,
+            glm::radians(self.fov),
             (self.width as f32) / (self.height as f32),
             near_plane,
             far_plane,
@@ -103,5 +94,21 @@ impl Camera for DefaultCamera {
                 .as_array()
                 .map(|x| *x.as_array()),
         )
+    }
+}
+
+impl ControllableByKey for DefaultCamera {
+    fn on_key_press(&mut self, keys: Vec<Keycode>) {
+        for key in keys {
+            match key {
+                Keycode::W => self.pos.z = self.pos.z - 0.01,
+                Keycode::A => self.pos.x = self.pos.x - 0.01,
+                Keycode::S => self.pos.z = self.pos.z + 0.01,
+                Keycode::D => self.pos.x = self.pos.x + 0.01,
+                Keycode::LShift | Keycode::RShift => self.pos.y = self.pos.y - 0.01,
+                Keycode::Space => self.pos.y = self.pos.y + 0.01,
+                _ => (),
+            }
+        }
     }
 }

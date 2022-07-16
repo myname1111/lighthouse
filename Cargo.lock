@@ -88,6 +88,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3f6d59c71e7dc3af60f0af9db32364d96a16e9310f3f5db2b55ed642162dd35"
 
 [[package]]
+name = "core-foundation"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "194a7a9e6de53fa55116934067c844d9d749312f75c6f6d0980e8c252f8c2146"
+dependencies = [
+ "core-foundation-sys",
+ "libc",
+]
+
+[[package]]
+name = "core-foundation-sys"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
+
+[[package]]
 name = "crc32fast"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -148,6 +164,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c86f7e25f518f4b81808a2cf1c50996a61f5c2eb394b2393bd87f2a4780a432f"
 dependencies = [
  "adler32",
+]
+
+[[package]]
+name = "device_query"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b54c3f0350a597abbed2c10fff7b233f92744c9422697d5fb58dc5397ab6fae"
+dependencies = [
+ "lazy_static",
+ "macos-accessibility-client",
+ "pkg-config",
+ "readkey",
+ "readmouse",
+ "winapi 0.3.9",
+ "x11",
 ]
 
 [[package]]
@@ -374,6 +405,7 @@ dependencies = [
  "beryllium",
  "bytemuck",
  "common_macros",
+ "device_query",
  "glm",
  "image",
  "imagine",
@@ -406,6 +438,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "macos-accessibility-client"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edf7710fbff50c24124331760978fb9086d6de6288dcdb38b25a97f8b1bdebbb"
+dependencies = [
+ "core-foundation",
+ "core-foundation-sys",
 ]
 
 [[package]]
@@ -591,6 +633,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkg-config"
+version = "0.3.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1df8c4ec4b0627e53bdf214615ad287367e482558cf84b109250b37464dc03ae"
+
+[[package]]
 name = "png"
 version = "0.17.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -701,6 +749,18 @@ checksum = "678054eb77286b51581ba43620cc911abf02758c91f93f479767aed0f90458b2"
 dependencies = [
  "rand_core 0.3.1",
 ]
+
+[[package]]
+name = "readkey"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86d401b6d6a1725a59f1b4e813275d289dff3ad09c72b373a10a7a8217ba3146"
+
+[[package]]
+name = "readmouse"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be105c72a1e6a5a1198acee3d5b506a15676b74a02ecd78060042a447f408d94"
 
 [[package]]
 name = "regex"
@@ -915,3 +975,13 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "x11"
+version = "2.19.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6dd0565fa8bfba8c5efe02725b14dff114c866724eff2cfd44d76cea74bcd87a"
+dependencies = [
+ "libc",
+ "pkg-config",
+]
