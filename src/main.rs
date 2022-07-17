@@ -12,9 +12,9 @@ use core::{
 };
 use device_query::{DeviceQuery, DeviceState, Keycode, MouseState};
 use image::DynamicImage;
-use lighthouse::core::camera::Camera;
+use lighthouse::core::{camera::Camera, object::ControllableByMouse};
 use lighthouse::{
-    core::{camera::DefaultCamera, object::ControllableByKey},
+    core::{camera::{DefaultCamera, CameraSettingsBuilder}, object::ControllableByKey},
     graphics::{buffer::*, number::*, shader::*, texture::*, uniform::*, vertex::*, *},
 };
 use std::fs;
@@ -138,10 +138,12 @@ fn main() {
     let mut camera = DefaultCamera::new(
         glm::vec3(0.0, 0.0, -2.0),
         glm::vec3(0.0, 0.0, 1.0),
-        WIDTH.try_into().unwrap(),
-        HEIGHT.try_into().unwrap(),
-        0.0,
-        45.0,
+        CameraSettingsBuilder::new()
+        .screen_width(WIDTH.try_into().unwrap())
+        .screen_height(HEIGHT.try_into().unwrap())
+        .win(&win)
+        .shader_program(&shader_program)
+        .build()
     );
 
     // uniforms
@@ -149,15 +151,10 @@ fn main() {
 
     // enable depth buffer
     enable(GL_DEPTH_TEST);
-    camera.matrix(0.1, 100.0, &shader_program, "camera_matrix");
+    camera.matrix("camera_matrix");
     'main_loop: loop {
         // Get inputs
         let keys = device_state.get_keys();
-        let mut mouse = device_state.get_mouse();
-
-        println!("{:?}", mouse.coords);
-
-        mouse.coords = (0, 0);
 
         // handle events this frame
         while let Some(event) = sdl.poll_events().and_then(Result::ok) {
@@ -169,7 +166,7 @@ fn main() {
 
         if !keys.is_empty() {
             camera.on_key_press(keys);
-            camera.matrix(0.1, 100.0, &shader_program, "camera_matrix");
+            camera.matrix("camera_matrix");
         }
 
         texture.bind(GL_TEXTURE_2D);
