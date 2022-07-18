@@ -19,6 +19,7 @@ use lighthouse::{
 };
 use std::fs;
 use std::time::*;
+use std::thread::sleep;
 
 type Vertex = [f32; 5];
 type TriIndexes = [u32; 3];
@@ -152,16 +153,26 @@ fn main() {
     // enable depth buffer
     enable(GL_DEPTH_TEST);
     camera.matrix("camera_matrix");
+    win.warp_mouse_in_window(0, 0);
     'main_loop: loop {
         // Get inputs
         let keys = device_state.get_keys();
+        
+        win.warp_mouse_in_window(0, 0);
+        println!("mouse shold be moved");
+        let mouse = DeviceState::new().get_mouse();
+        sleep(Duration::from_secs_f32(2.0));
+
+        let win_pos = mouse.coords.clone();
+
+        println!("{:?}", win_pos);
 
         // handle events this frame
         while let Some(event) = sdl.poll_events().and_then(Result::ok) {
             match event {
                 Event::Quit(_) => break 'main_loop,
                 _ => (),
-            }
+            };
         }
 
         if !keys.is_empty() {
@@ -185,5 +196,7 @@ fn main() {
             );
         }
         win.swap_window();
+        println!("waiting");
+        sleep(Duration::from_secs_f32(2.0));
     }
 }
