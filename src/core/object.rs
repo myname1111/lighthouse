@@ -1,4 +1,4 @@
-use device_query::{Keycode, MouseState};
+use device_query::DeviceState;
 
 /// Creates a new game object
 pub trait Object {
@@ -7,13 +7,7 @@ pub trait Object {
 }
 
 /// An object that can be controlled by your keyboard
-pub trait ControllableByKey {
-    /// Do things when a key is pressed
-    fn on_key_press(&mut self, keys: Vec<Keycode>);
-}
-
-/// An object that can be controlled by your mouse
-pub trait ControllableByMouse {
-    /// Do things when a mouse is pressed
-    fn on_mouse_press(&mut self, mouse: MouseState);
+pub trait Controllable {
+    /// Do things with device on update
+    fn update_input(&mut self, keys: &mut DeviceState);
 }

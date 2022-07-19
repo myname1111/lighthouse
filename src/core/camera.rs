@@ -1,7 +1,7 @@
 use super::object::*;
 use crate::graphics::{shader::ShaderProgram, uniform::Uniform};
 use beryllium::GlWindow;
-use device_query::Keycode;
+use device_query::{Keycode, DeviceState, DeviceQuery};
 
 /// Builder for [CameraSettings]
 pub struct CameraSettingsBuilder<'a> {
@@ -87,7 +87,7 @@ impl<'a> CameraSettingsBuilder<'a> {
     }
 
     /// Build the settings for the camera
-    /// 
+    ///
     /// NOTE: will panic if an argument isn't default or specified
     pub fn build(&self) -> CameraSettings<'a> {
         CameraSettings::<'a> {
@@ -101,7 +101,6 @@ impl<'a> CameraSettingsBuilder<'a> {
             shader_program: self.shader_program.expect("Error: argument shadeer program is not satisfied\nhelp: you can call .shader_program"),
         }
     }
-
 }
 
 /// Setting for the [Camera] struct
@@ -127,10 +126,7 @@ pub struct CameraSettings<'a> {
 /// Camera trait
 pub trait Camera: Object {
     /// Creates a new matrix from the camera position and parameters
-    fn matrix(
-        &self,
-        uniform: &'static str,
-    );
+    fn matrix(&self, uniform: &'static str);
 }
 
 /// Defalut Camera struct with default implementation
@@ -140,7 +136,7 @@ pub struct DefaultCamera<'a> {
     /// This field is supposed to store rotational information
     pub rot: glm::Vector3<f32>,
     /// settings for the camera
-    pub settings: CameraSettings<'a>
+    pub settings: CameraSettings<'a>,
 }
 
 impl<'a> DefaultCamera<'a> {
@@ -158,13 +154,9 @@ impl<'a> DefaultCamera<'a> {
     pub fn new(
         pos: glm::Vector3<f32>,
         rot: glm::Vector3<f32>,
-        settings: CameraSettings<'a>
+        settings: CameraSettings<'a>,
     ) -> Self {
-        DefaultCamera::<'a> {
-            pos,
-            rot,
-            settings
-        }
+        DefaultCamera::<'a> { pos, rot, settings }
     }
 }
 
@@ -180,11 +172,7 @@ impl<'a> Camera for DefaultCamera<'a> {
 
         let model = identity.clone();
 
-        let view = glm::ext::look_at(
-            self.pos,
-            self.pos + self.rot,
-            glm::vec3(0.0, 1.0, 0.0),
-        );
+        let view = glm::ext::look_at(self.pos, self.pos + self.rot, glm::vec3(0.0, 1.0, 0.0));
         let proj = glm::ext::perspective::<f32>(
             glm::radians(self.settings.fov),
             (self.settings.screen_width as f32) / (self.settings.screen_height as f32),
@@ -202,26 +190,22 @@ impl<'a> Camera for DefaultCamera<'a> {
     }
 }
 
-impl<'a> ControllableByKey for DefaultCamera<'a> {
-    fn on_key_press(&mut self, keys: Vec<Keycode>) {
-        for key in keys {
-            match key {
-                Keycode::W => self.pos.z = self.pos.z + 0.01,
-                Keycode::A => self.pos.x = self.pos.x + 0.01,
-                Keycode::S => self.pos.z = self.pos.z - 0.01,
-                Keycode::D => self.pos.x = self.pos.x - 0.01,
-                Keycode::LShift | Keycode::RShift => self.pos.y = self.pos.y - 0.01,
-                Keycode::Space => self.pos.y = self.pos.y + 0.01,
-                _ => (),
+impl<'a> Controllable for DefaultCamera<'a> {
+    fn update_input(&mut self, device: &mut DeviceState) {
+        let keys = device.get_keys();
+
+        if !keys.is_empty() {
+            for key in keys {
+                match key {
+                    Keycode::W => self.pos.z = self.pos.z + 0.01,
+                    Keycode::A => self.pos.x = self.pos.x + 0.01,
+                    Keycode::S => self.pos.z = self.pos.z - 0.01,
+                    Keycode::D => self.pos.x = self.pos.x - 0.01,
+                    Keycode::LShift | Keycode::RShift => self.pos.y = self.pos.y - 0.01,
+                    Keycode::Space => self.pos.y = self.pos.y + 0.01,
+                    _ => (),
+                }
             }
         }
     }
 }
-
-// TODO: get window location
-// impl<'a> ControllableByMouse for DefaultCamera<'a> {
-//     fn on_mouse_press(&mut self, mouse: device_query::MouseState) {
-//         println!("{:?}", self.settings.win);
-//         // self.settings.win.warp_mouse_in_window(mouse_coords.0, mouse_coords.1);
-//     }
-// }

@@ -12,14 +12,16 @@ use core::{
 };
 use device_query::{DeviceQuery, DeviceState, Keycode, MouseState};
 use image::DynamicImage;
-use lighthouse::core::{camera::Camera, object::ControllableByMouse};
 use lighthouse::{
-    core::{camera::{DefaultCamera, CameraSettingsBuilder}, object::ControllableByKey},
+    core::{
+        camera::{CameraSettingsBuilder, DefaultCamera, Camera},
+        object::Controllable,
+    },
     graphics::{buffer::*, number::*, shader::*, texture::*, uniform::*, vertex::*, *},
 };
-use std::fs;
-use std::time::*;
 use std::thread::sleep;
+use std::time::*;
+use std::{borrow::BorrowMut, fs};
 
 type Vertex = [f32; 5];
 type TriIndexes = [u32; 3];
@@ -45,7 +47,7 @@ fn main() {
     let frag = frag.as_str();
 
     // Create a new device state
-    let device_state = DeviceState::new();
+    let mut device_state = DeviceState::new();
 
     let sdl = SDL::init(InitFlags::Everything).expect("couldn't start SDL");
     sdl.gl_set_attribute(SdlGlAttr::MajorVersion, 3).unwrap();
@@ -140,11 +142,11 @@ fn main() {
         glm::vec3(0.0, 0.0, -2.0),
         glm::vec3(0.0, 0.0, 1.0),
         CameraSettingsBuilder::new()
-        .screen_width(WIDTH.try_into().unwrap())
-        .screen_height(HEIGHT.try_into().unwrap())
-        .win(&win)
-        .shader_program(&shader_program)
-        .build()
+            .screen_width(WIDTH.try_into().unwrap())
+            .screen_height(HEIGHT.try_into().unwrap())
+            .win(&win)
+            .shader_program(&shader_program)
+            .build(),
     );
 
     // uniforms
@@ -153,32 +155,19 @@ fn main() {
     // enable depth buffer
     enable(GL_DEPTH_TEST);
     camera.matrix("camera_matrix");
-    win.warp_mouse_in_window(0, 0);
+    
+    // Location of the world
     'main_loop: loop {
-        // Get inputs
-        let keys = device_state.get_keys();
-        
-        win.warp_mouse_in_window(0, 0);
-        println!("mouse shold be moved");
-        let mouse = DeviceState::new().get_mouse();
-        sleep(Duration::from_secs_f32(2.0));
-
-        let win_pos = mouse.coords.clone();
-
-        println!("{:?}", win_pos);
-
         // handle events this frame
         while let Some(event) = sdl.poll_events().and_then(Result::ok) {
             match event {
                 Event::Quit(_) => break 'main_loop,
                 _ => (),
-            };
+            }
         }
 
-        if !keys.is_empty() {
-            camera.on_key_press(keys);
-            camera.matrix("camera_matrix");
-        }
+        camera.update_input(&mut device_state);
+        camera.matrix("camera_matrix");
 
         texture.bind(GL_TEXTURE_2D);
 
@@ -196,7 +185,5 @@ fn main() {
             );
         }
         win.swap_window();
-        println!("waiting");
-        sleep(Duration::from_secs_f32(2.0));
     }
 }
