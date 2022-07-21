@@ -14,8 +14,9 @@ use device_query::{DeviceQuery, DeviceState, Keycode, MouseState};
 use image::DynamicImage;
 use lighthouse::{
     core::{
-        camera::{CameraSettingsBuilder, DefaultCamera, Camera},
-        object::Controllable,
+        camera::{Camera, CameraSettingsBuilder, DefaultCamera},
+        mouse::Mouse,
+        object::{ControllableKey, ControllableMouse},
     },
     graphics::{buffer::*, number::*, shader::*, texture::*, uniform::*, vertex::*, *},
 };
@@ -48,6 +49,7 @@ fn main() {
 
     // Create a new device state
     let mut device_state = DeviceState::new();
+    let mut mouse: Mouse = device_state.clone().into();
 
     let sdl = SDL::init(InitFlags::Everything).expect("couldn't start SDL");
     sdl.gl_set_attribute(SdlGlAttr::MajorVersion, 3).unwrap();
@@ -155,9 +157,10 @@ fn main() {
     // enable depth buffer
     enable(GL_DEPTH_TEST);
     camera.matrix("camera_matrix");
-    
     // Location of the world
     'main_loop: loop {
+        mouse.mouse = device_state.get_mouse();
+
         // handle events this frame
         while let Some(event) = sdl.poll_events().and_then(Result::ok) {
             match event {
@@ -166,7 +169,8 @@ fn main() {
             }
         }
 
-        camera.update_input(&mut device_state);
+        camera.on_key(device_state.get_keys());
+        camera.on_mouse(&mut mouse, &mut device_state);
         camera.matrix("camera_matrix");
 
         texture.bind(GL_TEXTURE_2D);

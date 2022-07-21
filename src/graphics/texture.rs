@@ -211,11 +211,17 @@ impl Texture {
         texture.tex_2d(lod, img);
         texture.generate_mipmaps();
 
-        return Ok(texture);
+        Ok(texture)
     }
 
     /// Deletes the texture
     pub fn delete(&self) {
         unsafe { glDeleteTextures(1, &self.id) }
+    }
+}
+
+impl Default for Texture {
+    fn default() -> Self {
+        Self::new()
     }
 }

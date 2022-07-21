@@ -1,7 +1,16 @@
-use super::object::*;
-use crate::graphics::{shader::ShaderProgram, uniform::Uniform};
+use std::time::Duration;
+
+use super::{
+    mouse::{Mouse, StateOfMouse::*},
+    object::*,
+};
+use crate::{
+    core::mouse::MousePressed,
+    graphics::{shader::ShaderProgram, uniform::Uniform},
+};
 use beryllium::GlWindow;
-use device_query::{Keycode, DeviceState, DeviceQuery};
+use device_query::{DeviceQuery, DeviceState, Keycode};
+use glm::*;
 
 /// Builder for [CameraSettings]
 pub struct CameraSettingsBuilder<'a> {
@@ -103,6 +112,12 @@ impl<'a> CameraSettingsBuilder<'a> {
     }
 }
 
+impl<'a> Default for CameraSettingsBuilder<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Setting for the [Camera] struct
 pub struct CameraSettings<'a> {
     /// This field is supposed to store the width of the screen
@@ -132,9 +147,9 @@ pub trait Camera: Object {
 /// Defalut Camera struct with default implementation
 pub struct DefaultCamera<'a> {
     /// This field is supposed to store positional information
-    pub pos: glm::Vector3<f32>,
+    pub pos: Vector3<f32>,
     /// This field is supposed to store rotational information
-    pub rot: glm::Vector3<f32>,
+    pub rot: Vector3<f32>,
     /// settings for the camera
     pub settings: CameraSettings<'a>,
 }
@@ -144,18 +159,14 @@ impl<'a> DefaultCamera<'a> {
     ///
     /// # Arguments
     ///
-    /// pos: glm::Vector3<f32> is supposed to store positional information
-    /// rot: glm::Vector3<f32> is supposed to store rotational information
+    /// pos: Vector3<f32> is supposed to store positional information
+    /// rot: Vector3<f32> is supposed to store rotational information
     /// width: i32 is supposed to store the width of the camera
     /// height: i32 is supposed to store the height of the camera
-    /// speed_pos: glm::Vector3<f32> is supposed to store the rotational speed of the camera
-    /// speed_rot: glm::Vector3<f32> is supposed to store the rotational speed of the camera
+    /// speed_pos: Vector3<f32> is supposed to store the rotational speed of the camera
+    /// speed_rot: Vector3<f32> is supposed to store the rotational speed of the camera
     /// sensitivity: f32 is supposed to store the height of the camera
-    pub fn new(
-        pos: glm::Vector3<f32>,
-        rot: glm::Vector3<f32>,
-        settings: CameraSettings<'a>,
-    ) -> Self {
+    pub fn new(pos: Vector3<f32>, rot: Vector3<f32>, settings: CameraSettings<'a>) -> Self {
         DefaultCamera::<'a> { pos, rot, settings }
     }
 }
@@ -166,15 +177,15 @@ impl<'a> Object for DefaultCamera<'a> {
 
 impl<'a> Camera for DefaultCamera<'a> {
     fn matrix(&self, uniform: &'static str) {
-        let identity = glm::mat4(
+        let identity = mat4(
             1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
         );
 
-        let model = identity.clone();
+        let model = identity;
 
-        let view = glm::ext::look_at(self.pos, self.pos + self.rot, glm::vec3(0.0, 1.0, 0.0));
-        let proj = glm::ext::perspective::<f32>(
-            glm::radians(self.settings.fov),
+        let view = ext::look_at(self.pos, self.pos + self.rot, vec3(0.0, 1.0, 0.0));
+        let proj = ext::perspective::<f32>(
+            radians(self.settings.fov),
             (self.settings.screen_width as f32) / (self.settings.screen_height as f32),
             self.settings.near_plane,
             self.settings.far_plane,
@@ -190,21 +201,50 @@ impl<'a> Camera for DefaultCamera<'a> {
     }
 }
 
-impl<'a> Controllable for DefaultCamera<'a> {
-    fn update_input(&mut self, device: &mut DeviceState) {
-        let keys = device.get_keys();
+impl<'a> ControllableKey for DefaultCamera<'a> {
+    fn on_key(&mut self, keys: Vec<Keycode>) {
+        for key in keys {
+            match key {
+                Keycode::W => self.pos.z += 0.01,
+                Keycode::A => self.pos.x += 0.01,
+                Keycode::S => self.pos.z -= 0.01,
+                Keycode::D => self.pos.x -= 0.01,
+                Keycode::LShift | Keycode::RShift => self.pos.y -= 0.01,
+                Keycode::Space => self.pos.y += 0.01,
+                _ => (),
+            }
+        }
+    }
+}
 
-        if !keys.is_empty() {
-            for key in keys {
-                match key {
-                    Keycode::W => self.pos.z = self.pos.z + 0.01,
-                    Keycode::A => self.pos.x = self.pos.x + 0.01,
-                    Keycode::S => self.pos.z = self.pos.z - 0.01,
-                    Keycode::D => self.pos.x = self.pos.x - 0.01,
-                    Keycode::LShift | Keycode::RShift => self.pos.y = self.pos.y - 0.01,
-                    Keycode::Space => self.pos.y = self.pos.y + 0.01,
-                    _ => (),
+impl<'a> ControllableMouse for DefaultCamera<'a> {
+    fn on_mouse(&mut self, mouse: &mut Mouse, device: &mut DeviceState) {
+        match mouse.get_pressed_cooldown(Duration::from_millis(100)) {
+            Some(vec) => {
+                for pressed in vec {
+                    match pressed {
+                        MousePressed::LeftMouse => {
+                            mouse.state = Locked(vec2(
+                                self.settings.screen_width as f32 / 2.0,
+                                self.settings.screen_height as f32 / 2.0,
+                            ))
+                        }
+                        MousePressed::RightMouse => {
+                            mouse.state = Free
+                        }
+                        _ => (),
+                    }
                 }
+            }
+            None => (),
+        }
+
+        match mouse.state {
+            Free => (),
+            Locked(Vector2 { x, y }) => {
+                self.settings.win.warp_mouse_in_window(x as i32, y as i32);
+                *device = DeviceState::new();
+                mouse.mouse = device.get_mouse();
             }
         }
     }
