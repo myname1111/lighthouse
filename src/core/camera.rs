@@ -13,6 +13,7 @@ use device_query::{DeviceQuery, DeviceState, Keycode};
 use nalgebra_glm::*;
 
 /// Builder for [CameraSettings]
+#[derive(Copy, Clone)]
 pub struct CameraSettingsBuilder<'a> {
     /// This field is supposed to store the width of the screen
     screen_width: Option<i32>,
@@ -119,6 +120,7 @@ impl<'a> Default for CameraSettingsBuilder<'a> {
 }
 
 /// Setting for the [Camera] struct
+#[derive(Copy, Clone)]
 pub struct CameraSettings<'a> {
     /// This field is supposed to store the width of the screen
     pub screen_width: i32,
@@ -141,7 +143,32 @@ pub struct CameraSettings<'a> {
 /// Camera trait
 pub trait Camera: Object {
     /// Creates a new matrix from the camera position and parameters
-    fn matrix(&self, uniform: &'static str);
+    fn matrix(&self, uniform: &'static str) {
+        let identity = mat4(
+            1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        );
+
+        let model = identity;
+
+        let view = look_at(
+            &self.get_pos(),
+            &(self.get_pos() + self.get_rot()),
+            &vec3(0.0, 1.0, 0.0),
+        );
+        let proj = perspective::<f32>(
+            (self.get_camera_settings().screen_width as f32)
+                / (self.get_camera_settings().screen_height as f32),
+            self.get_camera_settings().fov.to_radians(),
+            self.get_camera_settings().near_plane,
+            self.get_camera_settings().far_plane,
+        );
+
+        Uniform::new(self.get_camera_settings().shader_program, uniform)
+            .set_uniform_matrix(false, (proj * view * model).into())
+    }
+
+    /// Get the camera settings
+    fn get_camera_settings(&self) -> CameraSettings;
 }
 
 /// Defalut Camera struct with default implementation
@@ -173,26 +200,27 @@ impl<'a> DefaultCamera<'a> {
 
 impl<'a> Object for DefaultCamera<'a> {
     fn update(&mut self) {}
+
+    fn get_pos(&self) -> Vec3 {
+        self.pos
+    }
+
+    fn get_rot(&self) -> Vec3 {
+        self.rot
+    }
+
+    fn set_pos(&mut self, pos: Vec3) {
+        self.pos = pos;
+    }
+
+    fn set_rot(&mut self, rot: Vec3) {
+        self.rot = rot;
+    }
 }
 
 impl<'a> Camera for DefaultCamera<'a> {
-    fn matrix(&self, uniform: &'static str) {
-        let identity = mat4(
-            1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-        );
-
-        let model = identity;
-
-        let view = look_at(&self.pos, &(self.pos + self.rot), &vec3(0.0, 1.0, 0.0));
-        let proj = perspective::<f32>(
-            (self.settings.screen_width as f32) / (self.settings.screen_height as f32),
-            self.settings.fov.to_radians(),
-            self.settings.near_plane,
-            self.settings.far_plane,
-        );
-
-        Uniform::new(self.settings.shader_program, uniform)
-            .set_uniform_matrix(false, (proj * view * model).into())
+    fn get_camera_settings(&self) -> CameraSettings {
+        self.settings
     }
 }
 
