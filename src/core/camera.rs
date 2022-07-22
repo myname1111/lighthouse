@@ -13,6 +13,22 @@ use device_query::{DeviceQuery, DeviceState, Keycode};
 use nalgebra_glm::*;
 
 /// Builder for [CameraSettings]
+///
+/// # Example
+/// ```
+/// // here are the required dependencies
+/// let settings = CameraSettingsBuilder::new()
+///     .screen_width(WIDTH)
+///     .screen_height(HEIGHT)
+///     .win(&win)
+///     .shader_program(&shader_program)
+///     // Here are the optional ones, they are filled with these default values
+///     .fov(45.0)
+///     .sensitivity(1.0)
+///     .near_plane(0.1)
+///     .far_plane(100.0)
+///     .build() // And finally build
+/// ```
 #[derive(Copy, Clone)]
 pub struct CameraSettingsBuilder<'a> {
     /// This field is supposed to store the width of the screen
