@@ -130,12 +130,25 @@ impl<'a> CameraSettingsBuilder<'a> {
 }
 
 impl<'a> Default for CameraSettingsBuilder<'a> {
+    /// Creates a new camera settings
     fn default() -> Self {
         Self::new()
     }
 }
 
 /// Setting for the [Camera] struct
+///
+/// # Examples
+/// Make a new setting using [CameraSettingsBuilder]
+/// ```
+/// let camera_settings = CameraSettingsBuilder::new().
+///     win(&win)
+///     ... // see CameraSettingsBuilder
+/// ```
+/// load it into [Camera]
+/// ```
+/// let camera = Camera::new(pos, rot, settings);
+/// ```
 #[derive(Copy, Clone)]
 pub struct CameraSettings<'a> {
     /// This field is supposed to store the width of the screen
@@ -156,7 +169,19 @@ pub struct CameraSettings<'a> {
     pub shader_program: &'a ShaderProgram,
 }
 
-/// Camera trait
+/// Camera trait responsible for the DefaultCamera struct. TODO: move DefaultCamera into Camera, ContorllabeMouse ... and users can implement
+///
+/// You dont have to implement matrix. You do however need to implement get_camera_settings for the
+/// default implementation to work
+/// # Examples
+/// Make a new Camera
+/// ```
+/// impl Camera for MyCamera {
+///     fn get_camera_settings() {
+///         self.settings
+///     }
+/// }
+/// ```
 pub trait Camera: Object {
     /// Creates a new matrix from the camera position and parameters
     fn matrix(&self, uniform: &'static str) {
