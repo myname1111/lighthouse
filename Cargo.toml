@@ -1,6 +1,6 @@
 [package]
 name = "lighthouse"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,6 +12,5 @@ beryllium = "0.2.0-alpha.4"
 imagine = "0.0.5"
 image = "0.24.2"
 common_macros = "0.1.1"
-# glm has forward comp issues, use na instead. Will change in mior release
-glm = "0.2.3"
+nalgebra-glm = "0.17.0"
 device_query = "1.1.1"

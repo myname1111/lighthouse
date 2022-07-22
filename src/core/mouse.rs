@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use device_query::{DeviceQuery, DeviceState, MouseState};
-use glm::*;
+use nalgebra_glm::*;
 
 /// State of the mouse
 #[derive(Clone, Copy)]

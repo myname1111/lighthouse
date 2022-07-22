@@ -10,7 +10,7 @@ use crate::{
 };
 use beryllium::GlWindow;
 use device_query::{DeviceQuery, DeviceState, Keycode};
-use glm::*;
+use nalgebra_glm::*;
 
 /// Builder for [CameraSettings]
 pub struct CameraSettingsBuilder<'a> {
@@ -147,9 +147,9 @@ pub trait Camera: Object {
 /// Defalut Camera struct with default implementation
 pub struct DefaultCamera<'a> {
     /// This field is supposed to store positional information
-    pub pos: Vector3<f32>,
+    pub pos: Vec3,
     /// This field is supposed to store rotational information
-    pub rot: Vector3<f32>,
+    pub rot: Vec3,
     /// settings for the camera
     pub settings: CameraSettings<'a>,
 }
@@ -159,14 +159,14 @@ impl<'a> DefaultCamera<'a> {
     ///
     /// # Arguments
     ///
-    /// pos: Vector3<f32> is supposed to store positional information
-    /// rot: Vector3<f32> is supposed to store rotational information
+    /// pos: Vec3 is supposed to store positional information
+    /// rot: Vec3 is supposed to store rotational information
     /// width: i32 is supposed to store the width of the camera
     /// height: i32 is supposed to store the height of the camera
-    /// speed_pos: Vector3<f32> is supposed to store the rotational speed of the camera
-    /// speed_rot: Vector3<f32> is supposed to store the rotational speed of the camera
+    /// speed_pos: Vec3 is supposed to store the rotational speed of the camera
+    /// speed_rot: Vec3 is supposed to store the rotational speed of the camera
     /// sensitivity: f32 is supposed to store the height of the camera
-    pub fn new(pos: Vector3<f32>, rot: Vector3<f32>, settings: CameraSettings<'a>) -> Self {
+    pub fn new(pos: Vec3, rot: Vec3, settings: CameraSettings<'a>) -> Self {
         DefaultCamera::<'a> { pos, rot, settings }
     }
 }
@@ -183,21 +183,16 @@ impl<'a> Camera for DefaultCamera<'a> {
 
         let model = identity;
 
-        let view = ext::look_at(self.pos, self.pos + self.rot, vec3(0.0, 1.0, 0.0));
-        let proj = ext::perspective::<f32>(
-            radians(self.settings.fov),
+        let view = look_at(&self.pos, &(self.pos + self.rot), &vec3(0.0, 1.0, 0.0));
+        let proj = perspective::<f32>(
             (self.settings.screen_width as f32) / (self.settings.screen_height as f32),
+            self.settings.fov.to_radians(),
             self.settings.near_plane,
             self.settings.far_plane,
         );
 
-        Uniform::new(self.settings.shader_program, uniform).set_uniform_matrix(
-            false,
-            proj.mul_m(&view)
-                .mul_m(&model)
-                .as_array()
-                .map(|x| *x.as_array()),
-        )
+        Uniform::new(self.settings.shader_program, uniform)
+            .set_uniform_matrix(false, (proj * view * model).into())
     }
 }
 
@@ -229,9 +224,7 @@ impl<'a> ControllableMouse for DefaultCamera<'a> {
                                 self.settings.screen_height as f32 / 2.0,
                             ))
                         }
-                        MousePressed::RightMouse => {
-                            mouse.state = Free
-                        }
+                        MousePressed::RightMouse => mouse.state = Free,
                         _ => (),
                     }
                 }
@@ -241,7 +234,9 @@ impl<'a> ControllableMouse for DefaultCamera<'a> {
 
         match mouse.state {
             Free => (),
-            Locked(Vector2 { x, y }) => {
+            Locked(vec) => {
+                let arr: [f32; 2] = vec.into();
+                let (x, y) = (arr[0], arr[1]);
                 self.settings.win.warp_mouse_in_window(x as i32, y as i32);
                 *device = DeviceState::new();
                 mouse.mouse = device.get_mouse();

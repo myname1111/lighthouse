@@ -18,8 +18,9 @@ use lighthouse::{
         mouse::Mouse,
         object::{ControllableKey, ControllableMouse},
     },
-    graphics::{buffer::*, number::*, shader::*, texture::*, uniform::*, vertex::*, *},
+    graphics::{buffer::*, shader::*, texture::*, uniform::*, vertex::*, *},
 };
+use nalgebra_glm::*;
 use std::thread::sleep;
 use std::time::*;
 use std::{borrow::BorrowMut, fs};
@@ -130,10 +131,10 @@ fn main() {
     GL_TEXTURE0,
     GL_TEXTURE_2D,
     hash_map!{
-      "GL_TEXTURE_MIN_FILTER" => MultiSingularNumber::Number(Number::Integer(GL_NEAREST as i32)),
-      "GL_TEXTURE_MAG_FILTER" => MultiSingularNumber::Number(Number::Integer(GL_LINEAR as i32)),
-      "GL_TEXTURE_WRAP_S" => MultiSingularNumber::Number(Number::Integer(GL_REPEAT as i32)),
-      "GL_TEXTURE_WRAP_T" => MultiSingularNumber::Number(Number::Integer(GL_REPEAT as i32))
+      "GL_TEXTURE_MIN_FILTER" => number::MultiSingularNumber::Number(number::Number::Integer(GL_NEAREST as i32)),
+      "GL_TEXTURE_MAG_FILTER" => number::MultiSingularNumber::Number(number::Number::Integer(GL_LINEAR as i32)),
+      "GL_TEXTURE_WRAP_S" => number::MultiSingularNumber::Number(number::Number::Integer(GL_REPEAT as i32)),
+      "GL_TEXTURE_WRAP_T" => number::MultiSingularNumber::Number(number::Number::Integer(GL_REPEAT as i32))
     },
     0,
     img
@@ -141,8 +142,8 @@ fn main() {
 
     // Camera
     let mut camera = DefaultCamera::new(
-        glm::vec3(0.0, 0.0, -2.0),
-        glm::vec3(0.0, 0.0, 1.0),
+        vec3(0.0, 0.0, -2.0),
+        vec3(0.0, 0.0, 1.0),
         CameraSettingsBuilder::new()
             .screen_width(WIDTH.try_into().unwrap())
             .screen_height(HEIGHT.try_into().unwrap())
