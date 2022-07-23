@@ -18,8 +18,7 @@ use nalgebra_glm::*;
 /// ```
 /// // here are the required dependencies
 /// let settings = CameraSettingsBuilder::new()
-///     .screen_width(WIDTH)
-///     .screen_height(HEIGHT)
+///     .screen_size(size)
 ///     .win(&win)
 ///     .shader_program(&shader_program)
 ///     // Here are the optional ones, they are filled with these default values
@@ -32,9 +31,7 @@ use nalgebra_glm::*;
 #[derive(Copy, Clone)]
 pub struct CameraSettingsBuilder<'a> {
     /// This field is supposed to store the width of the screen
-    screen_width: Option<i32>,
-    /// This field is supposed to store the height of the screen
-    screen_height: Option<i32>,
+    screen_size: Option<Vec2>,
     /// FOV of the camera(in degrees)
     fov: f32,
     /// Sensitivity of the mouse
@@ -53,8 +50,7 @@ impl<'a> CameraSettingsBuilder<'a> {
     /// Creates a new camera settings
     pub fn new() -> Self {
         CameraSettingsBuilder::<'a> {
-            screen_width: None,
-            screen_height: None,
+            screen_size: None,
             fov: 45.0,
             win: None,
             sensitivity: 1.0,
@@ -64,15 +60,9 @@ impl<'a> CameraSettingsBuilder<'a> {
         }
     }
 
-    /// This function is supposed to set the screen_width. It must be called
-    pub fn screen_width(&mut self, screen_width: i32) -> &mut Self {
-        self.screen_width = Some(screen_width);
-        self
-    }
-
-    /// This function is supposed to set the screen_height. It must be called
-    pub fn screen_height(&mut self, screen_height: i32) -> &mut Self {
-        self.screen_height = Some(screen_height);
+    /// This function is supposed to set the screen_size. It must be called
+    pub fn screen_size(&mut self, screen_size: Vec2) -> &mut Self {
+        self.screen_size = Some(screen_size);
         self
     }
 
@@ -117,8 +107,7 @@ impl<'a> CameraSettingsBuilder<'a> {
     /// NOTE: will panic if an argument isn't default or specified
     pub fn build(&self) -> CameraSettings<'a> {
         CameraSettings::<'a> {
-            screen_width: self.screen_width.expect("Error: argument screen width is not satisfied\nhelp: you can call .screen_width"),
-            screen_height: self.screen_height.expect("Error: argument screen height is not satisfied\nhelp: you can call .screen_height"),
+            screen_size: self.screen_size.expect("Error: argument screen width is not satisfied\nhelp: you can call .screen_width"),
             fov: 45.0,
             sensitivity: self.sensitivity,
             win: self.win.expect("Error: argument window is not satisfied\nhelp: you can call .win"),
@@ -152,9 +141,7 @@ impl<'a> Default for CameraSettingsBuilder<'a> {
 #[derive(Copy, Clone)]
 pub struct CameraSettings<'a> {
     /// This field is supposed to store the width of the screen
-    pub screen_width: i32,
-    /// This field is supposed to store the height of the screen
-    pub screen_height: i32,
+    pub screen_size: Vec2,
     /// FOV of the camera(in degrees)
     pub fov: f32,
     /// Sensitivity of the mouse
@@ -185,6 +172,8 @@ pub struct CameraSettings<'a> {
 pub trait Camera: Object {
     /// Creates a new matrix from the camera position and parameters
     fn matrix(&self, uniform: &'static str) {
+        let settings = self.get_camera_settings();
+
         let identity = mat4(
             1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
         );
@@ -197,11 +186,10 @@ pub trait Camera: Object {
             &vec3(0.0, 1.0, 0.0),
         );
         let proj = perspective::<f32>(
-            (self.get_camera_settings().screen_width as f32)
-                / (self.get_camera_settings().screen_height as f32),
-            self.get_camera_settings().fov.to_radians(),
-            self.get_camera_settings().near_plane,
-            self.get_camera_settings().far_plane,
+            settings.screen_size.x / settings.screen_size.y,
+            settings.fov.to_radians(),
+            settings.near_plane,
+            settings.far_plane,
         );
 
         Uniform::new(self.get_camera_settings().shader_program, uniform)
@@ -283,22 +271,12 @@ impl<'a> ControllableKey for DefaultCamera<'a> {
 
 impl<'a> ControllableMouse for DefaultCamera<'a> {
     fn on_mouse(&mut self, mouse: &mut Mouse, device: &mut DeviceState) {
-        match mouse.get_pressed_cooldown(Duration::from_millis(100)) {
-            Some(vec) => {
-                for pressed in vec {
-                    match pressed {
-                        MousePressed::LeftMouse => {
-                            mouse.state = Locked(vec2(
-                                self.settings.screen_width as f32 / 2.0,
-                                self.settings.screen_height as f32 / 2.0,
-                            ))
-                        }
-                        MousePressed::RightMouse => mouse.state = Free,
-                        _ => (),
-                    }
-                }
+        for pressed in mouse.get_pressed_cooldown(Duration::from_millis(100)) {
+            match pressed {
+                MousePressed::LeftMouse => mouse.state = Locked(self.settings.screen_size / 2.0),
+                MousePressed::RightMouse => mouse.state = Free,
+                _ => (),
             }
-            None => (),
         }
 
         match mouse.state {
@@ -306,6 +284,7 @@ impl<'a> ControllableMouse for DefaultCamera<'a> {
             Locked(vec) => {
                 let arr: [f32; 2] = vec.into();
                 let (x, y) = (arr[0], arr[1]);
+
                 self.settings.win.warp_mouse_in_window(x as i32, y as i32);
                 *device = DeviceState::new();
                 mouse.mouse = device.get_mouse();

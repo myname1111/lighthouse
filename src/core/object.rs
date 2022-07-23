@@ -1,6 +1,5 @@
-use device_query::{DeviceState, Keycode};
-
 use super::mouse::Mouse;
+use device_query::{DeviceState, Keycode};
 use nalgebra_glm::*;
 
 /// Creates a new game object
@@ -91,13 +90,44 @@ pub trait Object {
     fn set_rot(&mut self, rot: Vec3);
 }
 
-/// An object that can be controlled by your keyboard
+/// An object trait that if implemented,
+/// your object can be controlled by your keyboard
+///
+/// # Examples
+/// this example explains how to implement your trait for your object
+/// ```
+/// impl ControllableKey for MyObject {
+///     fn on_key(&mut, keys: Vec<Keycode>) {
+///         // get all keys that are pressed
+///         for key in keys {
+///             // match keys
+///             match key {
+///                 Keycode::A => println!("Key a is pressed"),
+///             }
+///         }
+///     }
+/// }
+/// ```
 pub trait ControllableKey {
     /// Do things with device on update
     fn on_key(&mut self, keys: Vec<Keycode>);
 }
 
-/// An object that can be controlled by your Mouse
+/// An object trait that if implemented,
+/// your object can be controlled by your mouse
+///
+/// # Examples
+/// this example explains how to implement your trait for your object
+/// ```
+/// // in on_mouse
+/// for pressed in mouse.get_pressed_cooldown(Duration::from_millis(100)) {
+///     match pressed {
+///         MousePressed::LeftMouse => println!("Left mouse pressed"),
+///         MousePressed::RightMouse => println!("Right mouse pressed"),
+///         _ => (),
+///     }
+/// }
+/// ```
 pub trait ControllableMouse {
     /// Do things with device on update
     fn on_mouse(&mut self, mouse: &mut Mouse, device: &mut DeviceState);

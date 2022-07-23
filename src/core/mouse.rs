@@ -68,7 +68,10 @@ impl Mouse {
         }
     }
 
-    /// Returns the buttons pressed
+    /// Returns the what buttons are pressed
+    /// 
+    /// # Example
+    /// 
     pub fn get_pressed(&mut self) -> Vec<MousePressed> {
         let mut out = Vec::new();
         if self.mouse.button_pressed[1] {
@@ -88,11 +91,11 @@ impl Mouse {
     }
 
     /// Returns the buttons pressed with a cooldown
-    pub fn get_pressed_cooldown(&mut self, cooldown: Duration) -> Option<Vec<MousePressed>> {
+    pub fn get_pressed_cooldown(&mut self, cooldown: Duration) -> Vec<MousePressed> {
         if self.last_pressed.elapsed() > cooldown {
-            Some(self.get_pressed())
+            self.get_pressed()
         } else {
-            None
+            Vec::new()
         }
     }
 }

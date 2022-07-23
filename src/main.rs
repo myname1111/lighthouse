@@ -38,8 +38,8 @@ const VERTICES: [Vertex; 5] = [
 
 const INDICES: [TriIndexes; 4] = [[0, 1, 4], [1, 2, 4], [2, 3, 4], [0, 3, 4]];
 
-const WIDTH: u32 = 800;
-const HEIGHT: u32 = 600;
+const WIDTH: u16 = 800;
+const HEIGHT: u16 = 600;
 
 fn main() {
     let vert = fs::read_to_string("shaders/vert.glsl").expect("Failed to read vertex shader");
@@ -66,8 +66,8 @@ fn main() {
         .create_gl_window(
             WINDOW_TITLE,
             WindowPosition::Centered,
-            WIDTH,
-            HEIGHT,
+            WIDTH.into(),
+            HEIGHT.into(),
             WindowFlags::Shown,
         )
         .expect("couldn't make a window and context");
@@ -145,8 +145,7 @@ fn main() {
         vec3(0.0, 0.0, -2.0),
         vec3(0.0, 0.0, 1.0),
         CameraSettingsBuilder::new()
-            .screen_width(WIDTH.try_into().unwrap())
-            .screen_height(HEIGHT.try_into().unwrap())
+            .screen_size(vec2(WIDTH.into(), HEIGHT.into()))
             .win(&win)
             .shader_program(&shader_program)
             .build(),
