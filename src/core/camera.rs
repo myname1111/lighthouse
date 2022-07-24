@@ -1,15 +1,7 @@
-use std::time::Duration;
-
-use super::{
-    mouse::{Mouse, StateOfMouse::*},
-    object::*,
-};
-use crate::{
-    core::mouse::MousePressed,
-    graphics::{shader::ShaderProgram, uniform::Uniform},
-};
+use super::object::Object;
+use crate::graphics::shader::ShaderProgram;
+use crate::graphics::uniform::Uniform;
 use beryllium::GlWindow;
-use device_query::{DeviceQuery, DeviceState, Keycode};
 use nalgebra_glm::*;
 
 /// Builder for [CameraSettings]
@@ -156,20 +148,20 @@ pub struct CameraSettings<'a> {
     pub shader_program: &'a ShaderProgram,
 }
 
-/// Camera trait responsible for the DefaultCamera struct. TODO: move DefaultCamera into Camera, ContorllabeMouse ... and users can implement
+/// Camera trait responsible for the Camera struct. TODO: move Camera into Camera, ContorllabeMouse ... and users can implement
 ///
 /// You dont have to implement matrix. You do however need to implement get_camera_settings for the
 /// default implementation to work
 /// # Examples
 /// Make a new Camera
 /// ```
-/// impl Camera for MyCamera {
+/// impl CameraTrait for MyCamera {
 ///     fn get_camera_settings() {
 ///         self.settings
 ///     }
 /// }
 /// ```
-pub trait Camera: Object {
+pub trait CameraTrait: Object {
     /// Creates a new matrix from the camera position and parameters
     fn matrix(&self, uniform: &'static str) {
         let settings = self.get_camera_settings();
@@ -198,97 +190,4 @@ pub trait Camera: Object {
 
     /// Get the camera settings
     fn get_camera_settings(&self) -> CameraSettings;
-}
-
-/// Defalut Camera struct with default implementation
-pub struct DefaultCamera<'a> {
-    /// This field is supposed to store positional information
-    pub pos: Vec3,
-    /// This field is supposed to store rotational information
-    pub rot: Vec3,
-    /// settings for the camera
-    pub settings: CameraSettings<'a>,
-}
-
-impl<'a> DefaultCamera<'a> {
-    /// Creates a new camera
-    ///
-    /// # Arguments
-    ///
-    /// pos: Vec3 is supposed to store positional information
-    /// rot: Vec3 is supposed to store rotational information
-    /// width: i32 is supposed to store the width of the camera
-    /// height: i32 is supposed to store the height of the camera
-    /// speed_pos: Vec3 is supposed to store the rotational speed of the camera
-    /// speed_rot: Vec3 is supposed to store the rotational speed of the camera
-    /// sensitivity: f32 is supposed to store the height of the camera
-    pub fn new(pos: Vec3, rot: Vec3, settings: CameraSettings<'a>) -> Self {
-        DefaultCamera::<'a> { pos, rot, settings }
-    }
-}
-
-impl<'a> Object for DefaultCamera<'a> {
-    fn update(&mut self) {}
-
-    fn get_pos(&self) -> Vec3 {
-        self.pos
-    }
-
-    fn get_rot(&self) -> Vec3 {
-        self.rot
-    }
-
-    fn set_pos(&mut self, pos: Vec3) {
-        self.pos = pos;
-    }
-
-    fn set_rot(&mut self, rot: Vec3) {
-        self.rot = rot;
-    }
-}
-
-impl<'a> Camera for DefaultCamera<'a> {
-    fn get_camera_settings(&self) -> CameraSettings {
-        self.settings
-    }
-}
-
-impl<'a> ControllableKey for DefaultCamera<'a> {
-    fn on_key(&mut self, keys: Vec<Keycode>) {
-        for key in keys {
-            match key {
-                Keycode::W => self.pos.z += 0.01,
-                Keycode::A => self.pos.x += 0.01,
-                Keycode::S => self.pos.z -= 0.01,
-                Keycode::D => self.pos.x -= 0.01,
-                Keycode::LShift | Keycode::RShift => self.pos.y -= 0.01,
-                Keycode::Space => self.pos.y += 0.01,
-                _ => (),
-            }
-        }
-    }
-}
-
-impl<'a> ControllableMouse for DefaultCamera<'a> {
-    fn on_mouse(&mut self, mouse: &mut Mouse, device: &mut DeviceState) {
-        for pressed in mouse.get_pressed_cooldown(Duration::from_millis(100)) {
-            match pressed {
-                MousePressed::LeftMouse => mouse.state = Locked(self.settings.screen_size / 2.0),
-                MousePressed::RightMouse => mouse.state = Free,
-                _ => (),
-            }
-        }
-
-        match mouse.state {
-            Free => (),
-            Locked(vec) => {
-                let arr: [f32; 2] = vec.into();
-                let (x, y) = (arr[0], arr[1]);
-
-                self.settings.win.warp_mouse_in_window(x as i32, y as i32);
-                *device = DeviceState::new();
-                mouse.mouse = device.get_mouse();
-            }
-        }
-    }
 }
