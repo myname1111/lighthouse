@@ -1,6 +1,11 @@
 use super::{mouse::Mouse, world::World};
 use device_query::{DeviceState, Keycode};
 use nalgebra_glm::*;
+use std::any::Any;
+
+trait AsAny {
+    fn as_any(&self) -> &dyn Any;
+}
 
 /// Sets and gets the position and rotaion of the object
 pub trait PosRot {
@@ -88,9 +93,11 @@ pub trait PosRot {
 }
 
 /// Creates a new game object
-pub trait Object: PosRot {
+pub trait Object: PosRot + AsAny {
     /// update the object
-    fn update(&self, world: &World, index: usize);
+    fn update(world: &mut World, index: usize)
+    where
+        Self: Sized;
 }
 
 /// An object trait that if implemented,

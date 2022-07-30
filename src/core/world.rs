@@ -72,8 +72,8 @@ impl<'a> World<'a> {
     /// Update the world
     pub fn update(&mut self) {
         let len_object = self.objects.len();
-        for (i, object) in (0..len_object).zip(&self.objects) {
-            (*object).update(self, i);
+        for i in 0..len_object {
+            Object::update(self, i);
         }
     }
 }
