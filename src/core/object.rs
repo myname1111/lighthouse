@@ -1,12 +1,9 @@
-use super::mouse::Mouse;
+use super::{mouse::Mouse, world::World};
 use device_query::{DeviceState, Keycode};
 use nalgebra_glm::*;
 
-/// Creates a new game object
-pub trait Object {
-    /// update the object
-    fn update(&mut self);
-
+/// Sets and gets the position and rotaion of the object
+pub trait PosRot {
     /// Get the position of the object
     /// It is usually used in default trait impl
     ///
@@ -26,7 +23,7 @@ pub trait Object {
     ///     }
     /// }
     /// ```
-    fn get_pos(&self) -> Vec3;
+    fn get_pos(&self) -> &Vec3;
     /// Get the rotation of the object
     /// It is usually used in default trait impl
     ///
@@ -46,7 +43,7 @@ pub trait Object {
     ///     }
     /// }
     /// ```
-    fn get_rot(&self) -> Vec3;
+    fn get_rot(&self) -> &Vec3;
 
     /// Set the position of the object
     /// It is usually used in default trait impl
@@ -88,6 +85,12 @@ pub trait Object {
     /// }
     /// ```
     fn set_rot(&mut self, rot: Vec3);
+}
+
+/// Creates a new game object
+pub trait Object: PosRot {
+    /// update the object
+    fn update(&self, world: &World, index: usize);
 }
 
 /// An object trait that if implemented,

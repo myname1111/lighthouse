@@ -1,7 +1,7 @@
 use super::object::Object;
+use super::world::Enviroment;
 use crate::graphics::shader::ShaderProgram;
 use crate::graphics::uniform::Uniform;
-use beryllium::GlWindow;
 use nalgebra_glm::*;
 
 /// Builder for [CameraSettings]
@@ -28,8 +28,6 @@ pub struct CameraSettingsBuilder<'a> {
     fov: f32,
     /// Sensitivity of the mouse
     sensitivity: f32,
-    /// Window
-    win: Option<&'a GlWindow>,
     /// Anything below this value will be clipped
     near_plane: f32,
     /// Anything above this value will be clipped
@@ -40,15 +38,14 @@ pub struct CameraSettingsBuilder<'a> {
 
 impl<'a> CameraSettingsBuilder<'a> {
     /// Creates a new camera settings
-    pub fn new() -> Self {
+    pub fn new(env: Enviroment<'a>) -> Self {
         CameraSettingsBuilder::<'a> {
-            screen_size: None,
+            screen_size: Some(env.win_size),
             fov: 45.0,
-            win: None,
             sensitivity: 1.0,
             near_plane: 0.1,
             far_plane: 100.0,
-            shader_program: None,
+            shader_program: Some(env.shader_program),
         }
     }
 
@@ -67,12 +64,6 @@ impl<'a> CameraSettingsBuilder<'a> {
     /// This function is supposed to set the sensitivity of the mouse. It is optional
     pub fn sensitivity(&mut self, sensitivity: f32) -> &mut Self {
         self.sensitivity = sensitivity;
-        self
-    }
-
-    /// This function is supposed to set the win. It must be called
-    pub fn win(&mut self, win: &'a GlWindow) -> &mut Self {
-        self.win = Some(win);
         self
     }
 
@@ -102,7 +93,6 @@ impl<'a> CameraSettingsBuilder<'a> {
             screen_size: self.screen_size.expect("Error: argument screen width is not satisfied\nhelp: you can call .screen_width"),
             fov: 45.0,
             sensitivity: self.sensitivity,
-            win: self.win.expect("Error: argument window is not satisfied\nhelp: you can call .win"),
             near_plane: 0.1,
             far_plane: 100.0,
             shader_program: self.shader_program.expect("Error: argument shadeer program is not satisfied\nhelp: you can call .shader_program"),
@@ -113,7 +103,14 @@ impl<'a> CameraSettingsBuilder<'a> {
 impl<'a> Default for CameraSettingsBuilder<'a> {
     /// Creates a new camera settings
     fn default() -> Self {
-        Self::new()
+        CameraSettingsBuilder::<'a> {
+            screen_size: None,
+            fov: 45.0,
+            sensitivity: 1.0,
+            near_plane: 0.1,
+            far_plane: 100.0,
+            shader_program: None,
+        }
     }
 }
 
@@ -138,8 +135,6 @@ pub struct CameraSettings<'a> {
     pub fov: f32,
     /// Sensitivity of the mouse
     pub sensitivity: f32,
-    /// Window
-    pub win: &'a GlWindow,
     /// anything below this value will be clipped
     pub near_plane: f32,
     /// anything above this value will be clipped

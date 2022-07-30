@@ -16,7 +16,8 @@ use lighthouse::{
     core::{
         camera::{CameraSettings, CameraSettingsBuilder, CameraTrait},
         mouse::{MousePressed::*, StateOfMouse::*, *},
-        object::{ControllableKey, ControllableMouse, Object},
+        object::{ControllableKey, ControllableMouse, Object, PosRot},
+        world::{Enviroment, World},
     },
     graphics::{buffer::*, shader::*, texture::*, uniform::*, vertex::*, *},
 };
@@ -48,31 +49,18 @@ struct Camera<'a> {
 }
 
 impl<'a> Camera<'a> {
-    /// Creates a new camera
-    ///
-    /// # Arguments
-    ///
-    /// pos: Vec3 is supposed to store positional information
-    /// rot: Vec3 is supposed to store rotational information
-    /// width: i32 is supposed to store the width of the camera
-    /// height: i32 is supposed to store the height of the camera
-    /// speed_pos: Vec3 is supposed to store the rotational speed of the camera
-    /// speed_rot: Vec3 is supposed to store the rotational speed of the camera
-    /// sensitivity: f32 is supposed to store the height of the camera
-    pub fn new(pos: Vec3, rot: Vec3, settings: CameraSettings<'a>) -> Self {
+    pub fn new(pos: Vec3, rot: Vec3, settings: CameraSettings<'a>, world: World<'a>) -> Self {
         Camera::<'a> { pos, rot, settings }
     }
 }
 
-impl<'a> Object for Camera<'a> {
-    fn update(&mut self) {}
-
-    fn get_pos(&self) -> Vec3 {
-        self.pos
+impl<'a> PosRot for Camera<'a> {
+    fn get_pos(&self) -> &Vec3 {
+        &self.pos
     }
 
-    fn get_rot(&self) -> Vec3 {
-        self.rot
+    fn get_rot(&self) -> &Vec3 {
+        &self.rot
     }
 
     fn set_pos(&mut self, pos: Vec3) {
@@ -81,6 +69,12 @@ impl<'a> Object for Camera<'a> {
 
     fn set_rot(&mut self, rot: Vec3) {
         self.rot = rot;
+    }
+}
+
+impl<'a> Object for Camera<'a> {
+    fn update(&mut self, world: &World) {
+        todo!()
     }
 }
 
@@ -108,13 +102,20 @@ impl<'a> ControllableKey for Camera<'a> {
 
 impl<'a> ControllableMouse for Camera<'a> {
     fn on_mouse(&mut self, mouse: &mut Mouse, device: &mut DeviceState) {
-        for pressed in mouse.get_pressed_cooldown(Duration::from_millis(100)) {
-            match pressed {
+        if let Some(keys) = mouse.get_pressed_cooldown(Duration::from_millis(100)) {
+            keys.iter().for_each(|key| match key {
                 LeftMouse => mouse.state = Locked(self.settings.screen_size / 2.0),
                 RightMouse => mouse.state = Free,
                 _ => (),
-            }
+            });
         }
+        // for pressed in mouse.get_pressed_cooldown(Duration::from_millis(100)) {
+        //     match pressed {
+        //         LeftMouse => mouse.state = Locked(self.settings.screen_size / 2.0),
+        //         RightMouse => mouse.state = Free,
+        //         _ => (),
+        //     }
+        // }
 
         match mouse.state {
             Free => (),
@@ -211,6 +212,28 @@ fn main() {
     let shader_program = ShaderProgram::from_vert_frag(vert, frag).unwrap();
     shader_program.use_program();
 
+    // World
+    let world = World::new(
+        Enviroment::new(
+            vec2(WIDTH.into(), HEIGHT.into()),
+            &win,
+            &shader_program,
+            &device_state,
+            &mouse,
+        ),
+        &mut Camera::new(
+            vec3(0.0, 0.0, -2.0),
+            vec3(0.0, 0.0, 1.0),
+            CameraSettingsBuilder::default()
+                .screen_size(vec2(WIDTH.into(), HEIGHT.into()))
+                .win(&win)
+                .shader_program(&shader_program)
+                .build(),
+            world,
+        ),
+        Vec::new(),
+    );
+
     // textures
     let img = image::io::Reader::open("data/image.jpg")
         .unwrap()
@@ -228,17 +251,6 @@ fn main() {
     0,
     img
   ).unwrap();
-
-    // Camera
-    let mut camera = Camera::new(
-        vec3(0.0, 0.0, -2.0),
-        vec3(0.0, 0.0, 1.0),
-        CameraSettingsBuilder::new()
-            .screen_size(vec2(WIDTH.into(), HEIGHT.into()))
-            .win(&win)
-            .shader_program(&shader_program)
-            .build(),
-    );
 
     // uniforms
     Uniform::new(&shader_program, "tex_color");

@@ -4,3 +4,5 @@ pub mod camera;
 pub mod mouse;
 /// Module containing all thing related to objects
 pub mod object;
+/// Module containing the world struct
+pub mod world;
