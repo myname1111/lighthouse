@@ -62,7 +62,7 @@ pub fn to_glstr(src: &str) -> *const u8 {
 /// and just a string. However arrays of string are never used in my lib
 ///
 /// this function is used by functions that accepts a string
-pub fn to_cstr(src: &'static str) -> CString {
+pub fn to_cstr(src: &str) -> CString {
     CString::new(src).unwrap()
 }
 

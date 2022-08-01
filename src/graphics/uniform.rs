@@ -4,7 +4,7 @@ use super::{shader::*, *};
 pub struct Uniform(pub i32);
 impl Uniform {
     /// Creates a new uniform
-    pub fn new(program: &ShaderProgram, name: &'static str) -> Self {
+    pub fn new(program: &ShaderProgram, name: &str) -> Self {
         unsafe {
             Self(glGetUniformLocation(
                 program.0,

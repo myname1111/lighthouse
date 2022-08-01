@@ -157,7 +157,7 @@ pub struct CameraSettings<'a> {
 /// ```
 pub trait CameraTrait: Object {
     /// Creates a new matrix from the camera position and parameters
-    fn matrix(&self, uniform: &'static str) {
+    fn matrix(&self) {
         let settings = self.get_camera_settings();
 
         let identity = mat4(
@@ -178,10 +178,16 @@ pub trait CameraTrait: Object {
             settings.far_plane,
         );
 
-        Uniform::new(self.get_camera_settings().shader_program, uniform)
-            .set_uniform_matrix(false, (proj * view * model).into())
+        Uniform::new(
+            self.get_camera_settings().shader_program,
+            &self.get_camera_uniform(),
+        )
+        .set_uniform_matrix(false, (proj * view * model).into())
     }
 
     /// Get the camera settings
     fn get_camera_settings(&self) -> CameraSettings;
+
+    /// Gets the camera's uniform
+    fn get_camera_uniform(&self) -> String;
 }

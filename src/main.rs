@@ -46,11 +46,17 @@ struct Camera<'a> {
     pos: Vec3,
     rot: Vec3,
     settings: CameraSettings<'a>,
+    uniform: String,
 }
 
 impl<'a> Camera<'a> {
-    pub fn new(pos: Vec3, rot: Vec3, settings: CameraSettings<'a>) -> Self {
-        Camera::<'a> { pos, rot, settings }
+    pub fn new(pos: Vec3, rot: Vec3, settings: CameraSettings<'a>, uniform: String) -> Self {
+        Camera::<'a> {
+            pos,
+            rot,
+            settings,
+            uniform,
+        }
     }
 }
 
@@ -81,6 +87,10 @@ impl<'a> Object for Camera<'a> {
 impl<'a> CameraTrait for Camera<'a> {
     fn get_camera_settings(&self) -> CameraSettings {
         self.settings
+    }
+
+    fn get_camera_uniform(&self) -> String {
+        self.uniform
     }
 }
 
@@ -227,6 +237,7 @@ fn main() {
                 .screen_size(vec2(WIDTH.into(), HEIGHT.into()))
                 .shader_program(&shader_program)
                 .build(),
+            "camera_matrix".to_string(),
         ),
         Vec::new(),
     );
@@ -254,7 +265,7 @@ fn main() {
 
     // enable depth buffer
     enable(GL_DEPTH_TEST);
-    camera.matrix("camera_matrix");
+    world.update();
     // Location of the world
     'main_loop: loop {
         mouse.mouse = device_state.get_mouse();
@@ -267,9 +278,7 @@ fn main() {
             }
         }
 
-        camera.on_key(device_state.get_keys());
-        camera.on_mouse(&mut mouse, &mut device_state);
-        camera.matrix("camera_matrix");
+        world.update();
 
         texture.bind(GL_TEXTURE_2D);
 

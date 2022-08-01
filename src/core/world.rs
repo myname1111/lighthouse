@@ -68,5 +68,6 @@ impl<'a> World<'a> {
         for index in 0..self.objects.len() {
             self.objects[index].update()(self, index)
         }
+        self.camera.matrix()
     }
 }
