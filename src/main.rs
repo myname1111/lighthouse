@@ -102,21 +102,19 @@ impl<'a> ControllableKey for Camera<'a> {
 }
 
 impl<'a> ControllableMouse for Camera<'a> {
-    fn on_mouse(&mut self, mouse: &mut Mouse, device: &mut DeviceState) {
+    fn on_mouse(world: &mut World) {
+        let env = world.env;
+        let mouse = env.mouse;
+        let cam = world.camera;
+        let device = env.device;
+
         if let Some(keys) = mouse.get_pressed_cooldown(Duration::from_millis(100)) {
             keys.iter().for_each(|key| match key {
-                LeftMouse => mouse.state = Locked(self.settings.screen_size / 2.0),
+                LeftMouse => mouse.state = Locked(env.win_size / 2.0),
                 RightMouse => mouse.state = Free,
                 _ => (),
             });
         }
-        // for pressed in mouse.get_pressed_cooldown(Duration::from_millis(100)) {
-        //     match pressed {
-        //         LeftMouse => mouse.state = Locked(self.settings.screen_size / 2.0),
-        //         RightMouse => mouse.state = Free,
-        //         _ => (),
-        //     }
-        // }
 
         match mouse.state {
             Free => (),
@@ -124,7 +122,7 @@ impl<'a> ControllableMouse for Camera<'a> {
                 let arr: [f32; 2] = vec.into();
                 let (x, y) = (arr[0], arr[1]);
 
-                self.settings.win.warp_mouse_in_window(x as i32, y as i32);
+                env.win.warp_mouse_in_window(x as i32, y as i32);
                 *device = DeviceState::new();
                 mouse.mouse = device.get_mouse();
             }

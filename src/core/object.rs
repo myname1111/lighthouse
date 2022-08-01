@@ -139,5 +139,5 @@ pub trait ControllableKey {
 /// ```
 pub trait ControllableMouse {
     /// Do things with device on update
-    fn on_mouse(&self) -> fn(world: &mut World, index: usize);
+    fn on_mouse(world: &mut World);
 }
