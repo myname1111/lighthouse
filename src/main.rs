@@ -63,17 +63,17 @@ impl<'a> PosRot for Camera<'a> {
         &self.rot
     }
 
-    fn set_pos(&mut self, pos: Vec3) {
-        self.pos = pos;
+    fn set_pos(&mut self) -> &mut Vec3 {
+        &mut self.pos
     }
 
-    fn set_rot(&mut self, rot: Vec3) {
-        self.rot = rot;
+    fn set_rot(&mut self) -> &mut Vec3 {
+        &mut self.rot
     }
 }
 
 impl<'a> Object for Camera<'a> {
-    fn update(&mut self, world: &World) {
+    fn update(&self) -> fn(world: &mut World, index: usize) {
         todo!()
     }
 }
@@ -85,15 +85,16 @@ impl<'a> CameraTrait for Camera<'a> {
 }
 
 impl<'a> ControllableKey for Camera<'a> {
-    fn on_key(&mut self, keys: Vec<Keycode>) {
-        for key in keys {
+    fn on_key(world: &mut World) {
+        let cam = world.camera;
+        for key in world.env.device.get_keys() {
             match key {
-                Keycode::W => self.pos.z += 0.01,
-                Keycode::A => self.pos.x += 0.01,
-                Keycode::S => self.pos.z -= 0.01,
-                Keycode::D => self.pos.x -= 0.01,
-                Keycode::LShift | Keycode::RShift => self.pos.y -= 0.01,
-                Keycode::Space => self.pos.y += 0.01,
+                Keycode::W => cam.set_pos().z += 0.01,
+                Keycode::A => cam.set_pos().x += 0.01,
+                Keycode::S => cam.set_pos().z -= 0.01,
+                Keycode::D => cam.set_pos().x -= 0.01,
+                Keycode::LShift | Keycode::RShift => cam.set_pos().y -= 0.01,
+                Keycode::Space => cam.set_pos().y += 0.01,
                 _ => (),
             }
         }

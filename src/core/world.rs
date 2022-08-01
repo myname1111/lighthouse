@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use beryllium::GlWindow;
 use device_query::DeviceState;
 use nalgebra_glm::Vec2;
@@ -9,7 +7,7 @@ use crate::graphics::shader::ShaderProgram;
 use super::{
     camera::CameraTrait,
     mouse::Mouse,
-    object::{self, Object},
+    object::Object,
 };
 
 /// The world envieorment containing things like the keyboard and window
@@ -71,9 +69,8 @@ impl<'a> World<'a> {
 
     /// Update the world
     pub fn update(&mut self) {
-        let len_object = self.objects.len();
-        for i in 0..len_object {
-            Object::update(self, i);
+        for index in 0..self.objects.len() {
+            self.objects[index].update()(self, index)
         }
     }
 }
