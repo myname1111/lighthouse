@@ -4,11 +4,7 @@ use nalgebra_glm::Vec2;
 
 use crate::graphics::shader::ShaderProgram;
 
-use super::{
-    camera::CameraTrait,
-    mouse::Mouse,
-    object::Object,
-};
+use super::{camera::CameraTrait, mouse::Mouse, object::Object};
 
 /// The world envieorment containing things like the keyboard and window
 pub struct Enviroment<'a> {

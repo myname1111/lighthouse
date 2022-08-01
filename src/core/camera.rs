@@ -1,5 +1,4 @@
 use super::object::Object;
-use super::world::Enviroment;
 use crate::graphics::shader::ShaderProgram;
 use crate::graphics::uniform::Uniform;
 use nalgebra_glm::*;
@@ -38,14 +37,14 @@ pub struct CameraSettingsBuilder<'a> {
 
 impl<'a> CameraSettingsBuilder<'a> {
     /// Creates a new camera settings
-    pub fn new(env: Enviroment<'a>) -> Self {
+    pub fn new() -> Self {
         CameraSettingsBuilder::<'a> {
-            screen_size: Some(env.win_size),
+            screen_size: None,
             fov: 45.0,
             sensitivity: 1.0,
             near_plane: 0.1,
             far_plane: 100.0,
-            shader_program: Some(env.shader_program),
+            shader_program: None,
         }
     }
 

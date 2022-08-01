@@ -49,7 +49,7 @@ struct Camera<'a> {
 }
 
 impl<'a> Camera<'a> {
-    pub fn new(pos: Vec3, rot: Vec3, settings: CameraSettings<'a>, world: World<'a>) -> Self {
+    pub fn new(pos: Vec3, rot: Vec3, settings: CameraSettings<'a>) -> Self {
         Camera::<'a> { pos, rot, settings }
     }
 }
@@ -225,10 +225,8 @@ fn main() {
             vec3(0.0, 0.0, 1.0),
             CameraSettingsBuilder::default()
                 .screen_size(vec2(WIDTH.into(), HEIGHT.into()))
-                .win(&win)
                 .shader_program(&shader_program)
                 .build(),
-            world,
         ),
         Vec::new(),
     );
