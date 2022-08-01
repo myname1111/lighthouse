@@ -7,27 +7,27 @@ use crate::graphics::shader::ShaderProgram;
 use super::{camera::CameraTrait, mouse::Mouse, object::Object};
 
 /// The world envieorment containing things like the keyboard and window
-pub struct Enviroment<'a> {
+pub struct Enviroment {
     /// this is the window size
     pub win_size: Vec2,
     /// Window
-    pub win: &'a GlWindow,
+    pub win: GlWindow,
     /// The shader program
-    pub shader_program: &'a ShaderProgram,
+    pub shader_program: ShaderProgram,
     /// device is the [DeviceState] for getting keyboard and mouse
-    pub device: &'a DeviceState,
+    pub device: DeviceState,
     /// mouse is the [Mouse] wrapper for all things mouse
-    pub mouse: &'a Mouse,
+    pub mouse: Mouse,
 }
 
-impl<'a> Enviroment<'a> {
+impl Enviroment {
     /// Creates a new enviroment
     pub fn new(
         win_size: Vec2,
-        win: &'a GlWindow,
-        shader_program: &'a ShaderProgram,
-        device: &'a DeviceState,
-        mouse: &'a Mouse,
+        win: GlWindow,
+        shader_program: ShaderProgram,
+        device: DeviceState,
+        mouse: Mouse,
     ) -> Self {
         Enviroment {
             win_size,
@@ -42,7 +42,7 @@ impl<'a> Enviroment<'a> {
 /// World struct taht stores everything thats relevant to the world
 pub struct World<'a> {
     /// The computer enviroment
-    pub env: Enviroment<'a>,
+    pub env: Enviroment,
     /// The camera used to render the world
     pub camera: &'a mut dyn CameraTrait,
     /// All the objects in the world
@@ -52,7 +52,7 @@ pub struct World<'a> {
 impl<'a> World<'a> {
     /// Creates a new world struct
     pub fn new(
-        env: Enviroment<'a>,
+        env: Enviroment,
         camera: &'a mut (dyn CameraTrait + 'a),
         objects: Vec<Box<dyn Object>>,
     ) -> Self {

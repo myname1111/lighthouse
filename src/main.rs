@@ -90,21 +90,20 @@ impl<'a> CameraTrait for Camera<'a> {
     }
 
     fn get_camera_uniform(&self) -> String {
-        self.uniform
+        self.uniform.clone()
     }
 }
 
 impl<'a> ControllableKey for Camera<'a> {
     fn on_key(world: &mut World) {
-        let cam = world.camera;
         for key in world.env.device.get_keys() {
             match key {
-                Keycode::W => cam.set_pos().z += 0.01,
-                Keycode::A => cam.set_pos().x += 0.01,
-                Keycode::S => cam.set_pos().z -= 0.01,
-                Keycode::D => cam.set_pos().x -= 0.01,
-                Keycode::LShift | Keycode::RShift => cam.set_pos().y -= 0.01,
-                Keycode::Space => cam.set_pos().y += 0.01,
+                Keycode::W => world.camera.set_pos().z += 0.01,
+                Keycode::A => world.camera.set_pos().x += 0.01,
+                Keycode::S => world.camera.set_pos().z -= 0.01,
+                Keycode::D => world.camera.set_pos().x -= 0.01,
+                Keycode::LShift | Keycode::RShift => world.camera.set_pos().y -= 0.01,
+                Keycode::Space => world.camera.set_pos().y += 0.01,
                 _ => (),
             }
         }
@@ -113,28 +112,27 @@ impl<'a> ControllableKey for Camera<'a> {
 
 impl<'a> ControllableMouse for Camera<'a> {
     fn on_mouse(world: &mut World) {
-        let env = world.env;
-        let mouse = env.mouse;
-        let cam = world.camera;
-        let device = env.device;
-
-        if let Some(keys) = mouse.get_pressed_cooldown(Duration::from_millis(100)) {
+        if let Some(keys) = world
+            .env
+            .mouse
+            .get_pressed_cooldown(Duration::from_millis(100))
+        {
             keys.iter().for_each(|key| match key {
-                LeftMouse => mouse.state = Locked(env.win_size / 2.0),
-                RightMouse => mouse.state = Free,
+                LeftMouse => world.env.mouse.state = Locked(world.env.win_size / 2.0),
+                RightMouse => world.env.mouse.state = Free,
                 _ => (),
             });
         }
 
-        match mouse.state {
+        match world.env.mouse.state {
             Free => (),
             Locked(vec) => {
                 let arr: [f32; 2] = vec.into();
                 let (x, y) = (arr[0], arr[1]);
 
-                env.win.warp_mouse_in_window(x as i32, y as i32);
-                *device = DeviceState::new();
-                mouse.mouse = device.get_mouse();
+                world.env.win.warp_mouse_in_window(x as i32, y as i32);
+                world.env.device = DeviceState::new();
+                world.env.mouse.mouse = world.env.device.get_mouse();
             }
         }
     }
@@ -225,10 +223,10 @@ fn main() {
     let world = World::new(
         Enviroment::new(
             vec2(WIDTH.into(), HEIGHT.into()),
-            &win,
-            &shader_program,
-            &device_state,
-            &mouse,
+            win,
+            shader_program,
+            device_state,
+            mouse,
         ),
         &mut Camera::new(
             vec3(0.0, 0.0, -2.0),
