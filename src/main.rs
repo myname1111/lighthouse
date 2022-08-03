@@ -220,23 +220,25 @@ fn main() {
     shader_program.use_program();
 
     // World
-    let world = World::new(
+    let mut camera = Camera::new(
+        vec3(0.0, 0.0, -2.0),
+        vec3(0.0, 0.0, 1.0),
+        CameraSettingsBuilder::default()
+            .screen_size(vec2(WIDTH.into(), HEIGHT.into()))
+            .shader_program(&shader_program)
+            .build(),
+        "camera_matrix".to_string(),
+    );
+
+    let mut world = World::new(
         Enviroment::new(
             vec2(WIDTH.into(), HEIGHT.into()),
             win,
-            shader_program,
+            shader_program.clone(),
             device_state,
             mouse,
         ),
-        &mut Camera::new(
-            vec3(0.0, 0.0, -2.0),
-            vec3(0.0, 0.0, 1.0),
-            CameraSettingsBuilder::default()
-                .screen_size(vec2(WIDTH.into(), HEIGHT.into()))
-                .shader_program(&shader_program)
-                .build(),
-            "camera_matrix".to_string(),
-        ),
+        &mut camera,
         Vec::new(),
     );
 

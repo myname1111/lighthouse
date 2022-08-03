@@ -1,10 +1,5 @@
 use super::world::World;
 use nalgebra_glm::*;
-use std::any::Any;
-
-trait AsAny {
-    fn as_any(&self) -> &dyn Any;
-}
 
 /// Sets and gets the position and rotaion of the object
 pub trait PosRot {

@@ -4,7 +4,7 @@ use nalgebra_glm::Vec2;
 
 use crate::graphics::shader::ShaderProgram;
 
-use super::{camera::CameraTrait, mouse::Mouse, object::Object};
+use super::{camera::CameraTrait, mouse::Mouse};
 
 /// The world envieorment containing things like the keyboard and window
 pub struct Enviroment {
@@ -39,6 +39,33 @@ impl Enviroment {
     }
 }
 
+/// This trait defines the game objects in your world
+/// # Example
+/// basic usage
+/// ```
+/// struct MyObject { ... }
+/// impl PosRot for MyObject
+/// ...
+///
+/// struct GameObject {
+///     my_objects: Vec<MyObject>
+/// }
+///
+/// impl GameObjectTrait for GameObject {
+///     fn update(&mut self) {
+///         for i in 0..self.objects.my_objects.len() {
+///             self.objects.my_objects[i].update()(self, i)
+///         }
+///     }
+/// }
+///
+/// ```
+pub trait GameObjectTrait {
+    /// Updates the objects n game object
+    /// See trait level doc for more info
+    fn update(&self) -> fn(world: &mut World);
+}
+
 /// World struct taht stores everything thats relevant to the world
 pub struct World<'a> {
     /// The computer enviroment
@@ -46,7 +73,7 @@ pub struct World<'a> {
     /// The camera used to render the world
     pub camera: &'a mut dyn CameraTrait,
     /// All the objects in the world
-    pub objects: Vec<Box<dyn Object>>,
+    pub objects: Box<dyn GameObjectTrait>,
 }
 
 impl<'a> World<'a> {
@@ -54,7 +81,7 @@ impl<'a> World<'a> {
     pub fn new(
         env: Enviroment,
         camera: &'a mut (dyn CameraTrait + 'a),
-        objects: Vec<Box<dyn Object>>,
+        objects: Box<dyn GameObjectTrait>,
     ) -> Self {
         World {
             env,
@@ -65,9 +92,6 @@ impl<'a> World<'a> {
 
     /// Update the world
     pub fn update(&mut self) {
-        for index in 0..self.objects.len() {
-            self.objects[index].update()(self, index)
-        }
-        self.camera.matrix()
+        self.objects.update()(self);
     }
 }
