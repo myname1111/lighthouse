@@ -63,26 +63,28 @@ impl Enviroment {
 pub trait GameObjectTrait {
     /// Updates the objects n game object
     /// See trait level doc for more info
-    fn update(&self) -> fn(world: &mut World);
+    fn update(&self) -> fn(world: &mut World<Self>)
+    where
+        Self: Sized;
 
     /// Gets the camera, must implemt CameraTrait
-    fn get_camera(&self) -> &dyn CameraTrait;
+    fn get_camera(&self) -> &dyn CameraTrait<Self>;
 
     /// Sets the camera, must implemt CameraTrait
-    fn set_camera(&mut self) -> &mut dyn CameraTrait;
+    fn set_camera(&mut self) -> &mut dyn CameraTrait<Self>;
 }
 
 /// World struct taht stores everything thats relevant to the world
-pub struct World {
+pub struct World<GameObject: GameObjectTrait> {
     /// The computer enviroment
     pub env: Enviroment,
     /// All the objects in the world
-    pub objects: Box<dyn GameObjectTrait>,
+    pub objects: GameObject,
 }
 
-impl World {
+impl<GameObject: GameObjectTrait> World<GameObject> {
     /// Creates a new world struct
-    pub fn new(env: Enviroment, objects: Box<dyn GameObjectTrait>) -> Self {
+    pub fn new(env: Enviroment, objects: GameObject) -> Self {
         World { env, objects }
     }
 

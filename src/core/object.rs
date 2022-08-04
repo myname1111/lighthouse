@@ -1,4 +1,4 @@
-use super::world::World;
+use super::world::{GameObjectTrait, World};
 use nalgebra_glm::*;
 
 /// Sets and gets the position and rotaion of the object
@@ -87,9 +87,11 @@ pub trait PosRot {
 }
 
 /// Creates a new game object
-pub trait Object: PosRot {
+pub trait Object<GameObject: GameObjectTrait + Sized>: PosRot {
     /// update the object
-    fn update(&self) -> fn(world: &mut World, index: usize);
+    fn update(world: &mut World<GameObject>, index: usize)
+    where
+        Self: Sized;
 }
 
 /// An object trait that if implemented,
@@ -112,9 +114,9 @@ pub trait Object: PosRot {
 ///     }
 /// }
 /// ```
-pub trait ControllableKey {
+pub trait ControllableKey<GameObject: GameObjectTrait + Sized> {
     /// Do things with device on update
-    fn on_key(world: &mut World);
+    fn on_key(world: &mut World<GameObject>);
 }
 
 /// An object trait that if implemented,
@@ -132,7 +134,7 @@ pub trait ControllableKey {
 ///     }
 /// }
 /// ```
-pub trait ControllableMouse {
+pub trait ControllableMouse<GameObject: GameObjectTrait + Sized> {
     /// Do things with device on update
-    fn on_mouse(world: &mut World);
+    fn on_mouse(world: &mut World<GameObject>);
 }

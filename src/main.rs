@@ -17,7 +17,7 @@ use lighthouse::{
         camera::{CameraSettings, CameraSettingsBuilder, CameraTrait},
         mouse::{MousePressed::*, StateOfMouse::*, *},
         object::{ControllableKey, ControllableMouse, Object, PosRot},
-        world::{Enviroment, GameObjectTrait, World},
+        world::{self, Enviroment, GameObjectTrait, World},
     },
     graphics::{buffer::*, shader::*, texture::*, uniform::*, vertex::*, *},
 };
@@ -78,13 +78,14 @@ impl PosRot for Camera {
     }
 }
 
-impl Object for Camera {
-    fn update(&self) -> fn(world: &mut World, index: usize) {
-        todo!()
+impl Object<GameObject> for Camera {
+    fn update(world: &mut World<GameObject>, _: usize) {
+        Camera::matrix(&world.objects.camera);
+        Camera::on_key(world);
     }
 }
 
-impl<'a> CameraTrait for Camera {
+impl<'a> CameraTrait<GameObject> for Camera {
     fn get_camera_settings(&self) -> CameraSettings {
         self.settings
     }
@@ -94,8 +95,8 @@ impl<'a> CameraTrait for Camera {
     }
 }
 
-impl ControllableKey for Camera {
-    fn on_key(world: &mut World) {
+impl ControllableKey<GameObject> for Camera {
+    fn on_key(world: &mut World<GameObject>) {
         for key in world.env.device.get_keys() {
             match key {
                 Keycode::W => world.objects.set_camera().set_pos().z += 0.01,
@@ -110,8 +111,8 @@ impl ControllableKey for Camera {
     }
 }
 
-impl ControllableMouse for Camera {
-    fn on_mouse(world: &mut World) {
+impl ControllableMouse<GameObject> for Camera {
+    fn on_mouse(world: &mut World<GameObject>) {
         if let Some(keys) = world
             .env
             .mouse
@@ -143,15 +144,15 @@ struct GameObject {
 }
 
 impl GameObjectTrait for GameObject {
-    fn update(&self) -> fn(world: &mut World) {
-        todo!()
+    fn update(&self) -> fn(world: &mut World<GameObject>) {
+        |world: &mut World<GameObject>| Camera::update(world, 0)
     }
 
-    fn get_camera(&self) -> &dyn CameraTrait {
+    fn get_camera(&self) -> &dyn CameraTrait<Self> {
         &self.camera
     }
 
-    fn set_camera(&mut self) -> &mut dyn CameraTrait {
+    fn set_camera(&mut self) -> &mut dyn CameraTrait<Self> {
         &mut self.camera
     }
 }
@@ -164,8 +165,8 @@ fn main() {
     let frag = frag.as_str();
 
     // Create a new device state
-    let mut device_state = DeviceState::new();
-    let mut mouse: Mouse = device_state.clone().into();
+    let device_state = DeviceState::new();
+    let mouse: Mouse = device_state.clone().into();
 
     let sdl = SDL::init(InitFlags::Everything).expect("couldn't start SDL");
     sdl.gl_set_attribute(SdlGlAttr::MajorVersion, 3).unwrap();
@@ -250,7 +251,7 @@ fn main() {
 
     let game_objects = GameObject { camera };
 
-    let mut world = World::new(
+    let mut world = World::<GameObject>::new(
         Enviroment::new(
             vec2(WIDTH.into(), HEIGHT.into()),
             win,
@@ -258,7 +259,7 @@ fn main() {
             device_state,
             mouse,
         ),
-        Box::new(game_objects),
+        game_objects,
     );
 
     // textures
@@ -287,7 +288,7 @@ fn main() {
     world.update();
     // Location of the world
     'main_loop: loop {
-        mouse.mouse = device_state.get_mouse();
+        world.env.mouse.mouse = world.env.device.get_mouse();
 
         // handle events this frame
         while let Some(event) = sdl.poll_events().and_then(Result::ok) {
@@ -314,6 +315,6 @@ fn main() {
                 0 as *const _,
             );
         }
-        win.swap_window();
+        world.env.win.swap_window();
     }
 }

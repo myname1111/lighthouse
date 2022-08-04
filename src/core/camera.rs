@@ -1,4 +1,5 @@
 use super::object::Object;
+use super::world::GameObjectTrait;
 use crate::graphics::shader::ShaderProgram;
 use crate::graphics::uniform::Uniform;
 use nalgebra_glm::*;
@@ -155,7 +156,7 @@ pub struct CameraSettings {
 ///     }
 /// }
 /// ```
-pub trait CameraTrait: Object {
+pub trait CameraTrait<GameObject: GameObjectTrait + Sized>: Object<GameObject> {
     /// Creates a new matrix from the camera position and parameters
     fn matrix(&self) {
         let settings = self.get_camera_settings();
