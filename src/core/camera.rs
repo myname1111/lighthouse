@@ -20,7 +20,7 @@ use nalgebra_glm::*;
 ///     .build() // And finally build
 /// ```
 #[derive(Copy, Clone)]
-pub struct CameraSettingsBuilder<'a> {
+pub struct CameraSettingsBuilder {
     /// This field is supposed to store the width of the screen
     screen_size: Option<Vec2>,
     /// FOV of the camera(in degrees)
@@ -32,13 +32,13 @@ pub struct CameraSettingsBuilder<'a> {
     /// Anything above this value will be clipped
     far_plane: f32,
     /// The shader program
-    shader_program: Option<&'a ShaderProgram>,
+    shader_program: Option<ShaderProgram>,
 }
 
-impl<'a> CameraSettingsBuilder<'a> {
+impl CameraSettingsBuilder {
     /// Creates a new camera settings
     pub fn new() -> Self {
-        CameraSettingsBuilder::<'a> {
+        CameraSettingsBuilder {
             screen_size: None,
             fov: 45.0,
             sensitivity: 1.0,
@@ -79,7 +79,7 @@ impl<'a> CameraSettingsBuilder<'a> {
     }
 
     /// This function is supposed to set the shader_program. It must be called
-    pub fn shader_program(&mut self, shader_program: &'a ShaderProgram) -> &mut Self {
+    pub fn shader_program(&mut self, shader_program: ShaderProgram) -> &mut Self {
         self.shader_program = Some(shader_program);
         self
     }
@@ -87,8 +87,8 @@ impl<'a> CameraSettingsBuilder<'a> {
     /// Build the settings for the camera
     ///
     /// NOTE: will panic if an argument isn't default or specified
-    pub fn build(&self) -> CameraSettings<'a> {
-        CameraSettings::<'a> {
+    pub fn build(&self) -> CameraSettings {
+        CameraSettings {
             screen_size: self.screen_size.expect("Error: argument screen width is not satisfied\nhelp: you can call .screen_width"),
             fov: 45.0,
             sensitivity: self.sensitivity,
@@ -99,10 +99,10 @@ impl<'a> CameraSettingsBuilder<'a> {
     }
 }
 
-impl<'a> Default for CameraSettingsBuilder<'a> {
+impl Default for CameraSettingsBuilder {
     /// Creates a new camera settings
     fn default() -> Self {
-        CameraSettingsBuilder::<'a> {
+        CameraSettingsBuilder {
             screen_size: None,
             fov: 45.0,
             sensitivity: 1.0,
@@ -127,7 +127,7 @@ impl<'a> Default for CameraSettingsBuilder<'a> {
 /// let camera = Camera::new(pos, rot, settings);
 /// ```
 #[derive(Copy, Clone)]
-pub struct CameraSettings<'a> {
+pub struct CameraSettings {
     /// This field is supposed to store the width of the screen
     pub screen_size: Vec2,
     /// FOV of the camera(in degrees)
@@ -139,7 +139,7 @@ pub struct CameraSettings<'a> {
     /// anything above this value will be clipped
     pub far_plane: f32,
     /// the shader program
-    pub shader_program: &'a ShaderProgram,
+    pub shader_program: ShaderProgram,
 }
 
 /// Camera trait responsible for the Camera struct. TODO: move Camera into Camera, ContorllabeMouse ... and users can implement
@@ -179,7 +179,7 @@ pub trait CameraTrait: Object {
         );
 
         Uniform::new(
-            self.get_camera_settings().shader_program,
+            &self.get_camera_settings().shader_program,
             &self.get_camera_uniform(),
         )
         .set_uniform_matrix(false, (proj * view * model).into())

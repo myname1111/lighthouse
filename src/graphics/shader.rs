@@ -88,7 +88,7 @@ impl Shader {
 
 /// A handle to a [Program
 /// Object](https://www.khronos.org/opengl/wiki/GLSL_Object#Program_objects)
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct ShaderProgram(pub u32);
 impl ShaderProgram {
     /// Allocates a new program object.

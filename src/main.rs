@@ -17,7 +17,7 @@ use lighthouse::{
         camera::{CameraSettings, CameraSettingsBuilder, CameraTrait},
         mouse::{MousePressed::*, StateOfMouse::*, *},
         object::{ControllableKey, ControllableMouse, Object, PosRot},
-        world::{Enviroment, World},
+        world::{Enviroment, GameObjectTrait, World},
     },
     graphics::{buffer::*, shader::*, texture::*, uniform::*, vertex::*, *},
 };
@@ -42,16 +42,16 @@ const INDICES: [TriIndexes; 4] = [[0, 1, 4], [1, 2, 4], [2, 3, 4], [0, 3, 4]];
 const WIDTH: u16 = 800;
 const HEIGHT: u16 = 600;
 
-struct Camera<'a> {
+struct Camera {
     pos: Vec3,
     rot: Vec3,
-    settings: CameraSettings<'a>,
+    settings: CameraSettings,
     uniform: String,
 }
 
-impl<'a> Camera<'a> {
-    pub fn new(pos: Vec3, rot: Vec3, settings: CameraSettings<'a>, uniform: String) -> Self {
-        Camera::<'a> {
+impl Camera {
+    pub fn new(pos: Vec3, rot: Vec3, settings: CameraSettings, uniform: String) -> Self {
+        Camera {
             pos,
             rot,
             settings,
@@ -60,7 +60,7 @@ impl<'a> Camera<'a> {
     }
 }
 
-impl<'a> PosRot for Camera<'a> {
+impl PosRot for Camera {
     fn get_pos(&self) -> &Vec3 {
         &self.pos
     }
@@ -78,13 +78,13 @@ impl<'a> PosRot for Camera<'a> {
     }
 }
 
-impl<'a> Object for Camera<'a> {
+impl Object for Camera {
     fn update(&self) -> fn(world: &mut World, index: usize) {
         todo!()
     }
 }
 
-impl<'a> CameraTrait for Camera<'a> {
+impl<'a> CameraTrait for Camera {
     fn get_camera_settings(&self) -> CameraSettings {
         self.settings
     }
@@ -94,23 +94,23 @@ impl<'a> CameraTrait for Camera<'a> {
     }
 }
 
-impl<'a> ControllableKey for Camera<'a> {
+impl ControllableKey for Camera {
     fn on_key(world: &mut World) {
         for key in world.env.device.get_keys() {
             match key {
-                Keycode::W => world.camera.set_pos().z += 0.01,
-                Keycode::A => world.camera.set_pos().x += 0.01,
-                Keycode::S => world.camera.set_pos().z -= 0.01,
-                Keycode::D => world.camera.set_pos().x -= 0.01,
-                Keycode::LShift | Keycode::RShift => world.camera.set_pos().y -= 0.01,
-                Keycode::Space => world.camera.set_pos().y += 0.01,
+                Keycode::W => world.objects.set_camera().set_pos().z += 0.01,
+                Keycode::A => world.objects.set_camera().set_pos().x += 0.01,
+                Keycode::S => world.objects.set_camera().set_pos().z -= 0.01,
+                Keycode::D => world.objects.set_camera().set_pos().x -= 0.01,
+                Keycode::LShift | Keycode::RShift => world.objects.set_camera().set_pos().y -= 0.01,
+                Keycode::Space => world.objects.set_camera().set_pos().y += 0.01,
                 _ => (),
             }
         }
     }
 }
 
-impl<'a> ControllableMouse for Camera<'a> {
+impl ControllableMouse for Camera {
     fn on_mouse(world: &mut World) {
         if let Some(keys) = world
             .env
@@ -135,6 +135,24 @@ impl<'a> ControllableMouse for Camera<'a> {
                 world.env.mouse.mouse = world.env.device.get_mouse();
             }
         }
+    }
+}
+
+struct GameObject {
+    camera: Camera,
+}
+
+impl GameObjectTrait for GameObject {
+    fn update(&self) -> fn(world: &mut World) {
+        todo!()
+    }
+
+    fn get_camera(&self) -> &dyn CameraTrait {
+        &self.camera
+    }
+
+    fn set_camera(&mut self) -> &mut dyn CameraTrait {
+        &mut self.camera
     }
 }
 
@@ -220,15 +238,17 @@ fn main() {
     shader_program.use_program();
 
     // World
-    let mut camera = Camera::new(
+    let camera = Camera::new(
         vec3(0.0, 0.0, -2.0),
         vec3(0.0, 0.0, 1.0),
         CameraSettingsBuilder::default()
             .screen_size(vec2(WIDTH.into(), HEIGHT.into()))
-            .shader_program(&shader_program)
+            .shader_program(shader_program)
             .build(),
         "camera_matrix".to_string(),
     );
+
+    let game_objects = GameObject { camera };
 
     let mut world = World::new(
         Enviroment::new(
@@ -238,8 +258,7 @@ fn main() {
             device_state,
             mouse,
         ),
-        &mut camera,
-        Vec::new(),
+        Box::new(game_objects),
     );
 
     // textures
