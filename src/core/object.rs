@@ -42,7 +42,7 @@ pub trait PosRot {
     ///     }
     /// }
     /// ```
-    fn get_rot(&self) -> &Vec3;
+    fn get_rot(&self) -> &Vec4;
 
     /// Set the position of the object
     /// It is usually used in default trait impl
@@ -83,7 +83,7 @@ pub trait PosRot {
     ///     }
     /// }
     /// ```
-    fn set_rot(&mut self) -> &mut Vec3;
+    fn set_rot(&mut self) -> &mut Vec4;
 }
 
 /// Creates a new game object

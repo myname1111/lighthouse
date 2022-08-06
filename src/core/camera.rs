@@ -169,7 +169,7 @@ pub trait CameraTrait<GameObject: GameObjectTrait + Sized>: Object<GameObject> {
 
         let view = look_at(
             &self.get_pos(),
-            &(self.get_pos() + self.get_rot()),
+            &(self.get_pos() + self.get_rot().xyz()),
             &vec3(0.0, 1.0, 0.0),
         );
         let proj = perspective::<f32>(

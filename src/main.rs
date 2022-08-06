@@ -30,11 +30,11 @@ type Vertex = [f32; 5];
 type TriIndexes = [u32; 3];
 
 const VERTICES: [Vertex; 5] = [
-    [0.5, -0.5, 0.0, 1.0, 0.0],   // front right
-    [-0.5, -0.5, 0.0, 0.0, 0.0],  // front left
-    [-0.5, -0.5, -1.0, 1.0, 0.0], // back left
-    [0.5, -0.5, -1.0, 0.0, 0.0],  // back right
-    [0.0, 0.5, -0.5, 0.5, 1.5],   // top
+    [0.5, -0.5, 0.5, 1.0, 0.0],   // front right
+    [-0.5, -0.5, 0.5, 0.0, 0.0],  // front left
+    [-0.5, -0.5, -0.5, 1.0, 0.0], // back left
+    [0.5, -0.5, -0.5, 0.0, 0.0],  // back right
+    [0.0, 0.5, 0.0, 0.5, 1.5],    // top
 ];
 
 const INDICES: [TriIndexes; 4] = [[0, 1, 4], [1, 2, 4], [2, 3, 4], [0, 3, 4]];
@@ -44,13 +44,13 @@ const HEIGHT: u16 = 600;
 
 struct Camera {
     pos: Vec3,
-    rot: Vec3,
+    rot: Vec4,
     settings: CameraSettings,
     uniform: String,
 }
 
 impl Camera {
-    pub fn new(pos: Vec3, rot: Vec3, settings: CameraSettings, uniform: String) -> Self {
+    pub fn new(pos: Vec3, rot: Vec4, settings: CameraSettings, uniform: String) -> Self {
         Camera {
             pos,
             rot,
@@ -65,7 +65,7 @@ impl PosRot for Camera {
         &self.pos
     }
 
-    fn get_rot(&self) -> &Vec3 {
+    fn get_rot(&self) -> &Vec4 {
         &self.rot
     }
 
@@ -73,7 +73,7 @@ impl PosRot for Camera {
         &mut self.pos
     }
 
-    fn set_rot(&mut self) -> &mut Vec3 {
+    fn set_rot(&mut self) -> &mut Vec4 {
         &mut self.rot
     }
 }
@@ -139,13 +139,128 @@ impl ControllableMouse<GameObject> for Camera {
     }
 }
 
+struct Pyramid {
+    pos: Vec3,
+    rot: Vec4,
+    mesh: ([Vertex; 5], [TriIndexes; 4]),
+    vao: VertexArray,
+    vbo: Buffer,
+    ebo: Buffer,
+}
+
+impl Pyramid {
+    fn get_vert(&self) -> [[f32; 5]; 5] {
+        let mut out: [[f32; 5]; 5] = [[0.0; 5]; 5];
+
+        for (index, vertex) in self.mesh.0.iter().enumerate() {
+            let vec: [f32; 3] = rotate_vec3(
+                &vec3(vertex[0], vertex[1], vertex[2]),
+                self.rot.w,
+                &self.rot.xyz(),
+            )
+            .into();
+
+            out[index] = [
+                vec[0],
+                vec[1],
+                vec[2],
+                self.mesh.0[index][3],
+                self.mesh.0[index][4],
+            ]
+        }
+
+        out
+    }
+
+    fn new(pos: Vec3, rot: Vec4, mesh: ([Vertex; 5], [TriIndexes; 4])) -> Self {
+        let out = Self {
+            pos,
+            rot,
+            mesh,
+            vao: VertexArray::new().expect("Couldn't make a VAO"),
+            vbo: Buffer::new().expect("Couldn't make a VBO"),
+            ebo: Buffer::new().expect("Couldn't make EBO"),
+        };
+
+        out.vao.bind();
+        out.vbo.bind(BufferType::Array);
+        out.ebo.bind(BufferType::ElementArray);
+
+        out
+    }
+}
+
+impl PosRot for Pyramid {
+    fn get_pos(&self) -> &Vec3 {
+        &self.pos
+    }
+
+    fn get_rot(&self) -> &Vec4 {
+        &self.rot
+    }
+
+    fn set_pos(&mut self) -> &mut Vec3 {
+        &mut self.pos
+    }
+
+    fn set_rot(&mut self) -> &mut Vec4 {
+        &mut self.rot
+    }
+}
+
+impl Object<GameObject> for Pyramid {
+    fn update(world: &mut World<GameObject>, _: usize)
+    where
+        Self: Sized,
+    {
+        world.objects.pyramid.rot.w += 0.01;
+
+        unsafe {
+            glVertexAttribPointer(
+                0,
+                3,
+                GL_FLOAT,
+                GL_FALSE,
+                size_of::<Vertex>().try_into().unwrap(),
+                0 as *const _,
+            );
+            glVertexAttribPointer(
+                1,
+                2,
+                GL_FLOAT,
+                GL_FALSE,
+                size_of::<Vertex>().try_into().unwrap(),
+                size_of::<[f32; 3]>() as *const _,
+            );
+
+            glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(1);
+        }
+
+        buffer_data(
+            BufferType::Array,
+            bytemuck::cast_slice(&world.objects.pyramid.get_vert()),
+            GL_STATIC_DRAW,
+        );
+        buffer_data(
+            BufferType::ElementArray,
+            bytemuck::cast_slice(&world.objects.pyramid.mesh.1),
+            GL_STATIC_DRAW,
+        );
+    }
+}
+
 struct GameObject {
     camera: Camera,
+    pyramid: Pyramid,
 }
 
 impl GameObjectTrait for GameObject {
     fn update(&self) -> fn(world: &mut World<GameObject>) {
-        |world: &mut World<GameObject>| Camera::update(world, 0)
+        |world: &mut World<GameObject>| {
+            Camera::update(world, 0);
+            Pyramid::update(world, 0)
+        }
     }
 
     fn get_camera(&self) -> &dyn CameraTrait<Self> {
@@ -195,53 +310,20 @@ fn main() {
 
     clear_color(0.2, 0.3, 0.3, 1.0); // sets background color
 
-    let vao = VertexArray::new().expect("Couldn't make a VAO");
-    vao.bind();
-
-    let vbo = Buffer::new().expect("Couldn't make a VBO");
-    vbo.bind(BufferType::Array);
-    buffer_data(
-        BufferType::Array,
-        bytemuck::cast_slice(&VERTICES),
-        GL_STATIC_DRAW,
+    // Pyramid
+    let pyramid = Pyramid::new(
+        vec3(0.0, 0.0, 0.0),
+        vec4(0.0, 1.0, 0.0, 0.0),
+        (VERTICES, INDICES),
     );
 
-    let ebo = Buffer::new().expect("Couldn't make EBO");
-    ebo.bind(BufferType::ElementArray);
-    buffer_data(
-        BufferType::ElementArray,
-        bytemuck::cast_slice(&INDICES),
-        GL_STATIC_DRAW,
-    );
-
-    unsafe {
-        glVertexAttribPointer(
-            0,
-            3,
-            GL_FLOAT,
-            GL_FALSE,
-            size_of::<Vertex>().try_into().unwrap(),
-            0 as *const _,
-        );
-        glVertexAttribPointer(
-            1,
-            2,
-            GL_FLOAT,
-            GL_FALSE,
-            size_of::<Vertex>().try_into().unwrap(),
-            size_of::<[f32; 3]>() as *const _,
-        );
-
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-    }
     let shader_program = ShaderProgram::from_vert_frag(vert, frag).unwrap();
     shader_program.use_program();
 
     // World
     let camera = Camera::new(
         vec3(0.0, 0.0, -2.0),
-        vec3(0.0, 0.0, 1.0),
+        vec4(0.0, 0.0, 1.0, 0.0),
         CameraSettingsBuilder::default()
             .screen_size(vec2(WIDTH.into(), HEIGHT.into()))
             .shader_program(shader_program)
@@ -249,7 +331,7 @@ fn main() {
         "camera_matrix".to_string(),
     );
 
-    let game_objects = GameObject { camera };
+    let game_objects = GameObject { camera, pyramid };
 
     let mut world = World::<GameObject>::new(
         Enviroment::new(
@@ -298,9 +380,8 @@ fn main() {
             }
         }
 
-        world.update();
-
         texture.bind(GL_TEXTURE_2D);
+        world.update();
 
         // and then draw!
         unsafe {
