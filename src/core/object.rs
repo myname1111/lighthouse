@@ -176,3 +176,12 @@ pub trait ControllableMouse<GameObject: GameObjectTrait + Sized> {
     /// Do things with device on update
     fn on_mouse(world: &mut World<GameObject>);
 }
+
+/// Implement this trait if your object has a mesh
+pub trait Mesh {
+    /// get the vertex after position and rotation
+    fn get_vert(&self);
+
+    /// updates the mesh
+    fn update_mesh(&self);
+}

@@ -145,13 +145,10 @@ impl Pyramid {
             )
             .into();
 
-            out[index] = [
-                vec[0],
-                vec[1],
-                vec[2],
-                self.mesh.0[index][3],
-                self.mesh.0[index][4],
-            ]
+            let (one, two) = out[index].split_at_mut(3);
+
+            one.copy_from_slice(&vec);
+            two.copy_from_slice(&self.mesh.0[index][3..])
         }
 
         out
