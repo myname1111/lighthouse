@@ -292,5 +292,5 @@ where
     Vertex: VertexTrait,
 {
     /// gets the mesh
-    fn get_mesh(&self) -> Mesh<Vertex>;
+    fn get_mesh(&self) -> &Mesh<Vertex>;
 }

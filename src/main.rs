@@ -17,7 +17,7 @@ use lighthouse::{
         camera::{CameraSettings, CameraSettingsBuilder, CameraTrait},
         mouse::{MousePressed::*, StateOfMouse::*, *},
         object::{
-            ControllableKey, ControllableMouse, Mesh, MeshObject, Object, PosRot, VertexTrait,
+            ControllableKey, ControllableMouse, Mesh, MeshTrait, Object, PosRot, VertexTrait,
         },
         world::{self, Enviroment, GameObjectTrait, World},
     },
@@ -31,31 +31,28 @@ use std::{borrow::BorrowMut, fs};
 
 type TriIndexes = [u32; 3];
 
-const VERTICES: [Vertex; 5] = [
-    [0.5, -0.5, 0.5, 1.0, 0.0],   // front right
-    [-0.5, -0.5, 0.5, 0.0, 0.0],  // front left
-    [-0.5, -0.5, -0.5, 1.0, 0.0], // back left
-    [0.5, -0.5, -0.5, 0.0, 0.0],  // back right
-    [0.0, 0.5, 0.0, 0.5, 1.5],    // top
-];
-
-const INDICES: [TriIndexes; 4] = [[0, 1, 4], [1, 2, 4], [2, 3, 4], [0, 3, 4]];
-
 const WIDTH: u16 = 800;
 const HEIGHT: u16 = 600;
 
+#[derive(Copy, Clone)]
 struct Vertex {
     vert: Vec3,
     tex_coord: Vec2,
+}
+
+impl Vertex {
+    fn new(vert: Vec3, tex_coord: Vec2) -> Vertex {
+        Vertex { vert, tex_coord }
+    }
 }
 
 impl VertexTrait for Vertex {
     const SIZE: usize = 5;
 
     fn as_list(&self) -> Vec<f32> {
-        let out = Vec::<f32>::new();
-        out.append(self.vert.into());
-        out.append(self.tex_coord.into());
+        let mut out = Vec::<f32>::new();
+        out.append(&mut Vec::from(<[f32; 3]>::from(self.vert)));
+        out.append(&mut Vec::from(<[f32; 2]>::from(self.tex_coord)));
         out
     }
 }
@@ -147,14 +144,8 @@ struct Pyramid {
     mesh: Mesh<Vertex>,
 }
 
-impl Mesh<GameObject, Vertex> for Pyramid {
-    fn get_vert(&self) -> Vec<Vertex> {}
-
-    fn get_mesh(&self) -> (Vec<Vertex>, Vec<usize>, Vec<[u32; 3]>) {
-        todo!()
-    }
-
-    fn update_mesh(&self) {
+impl MeshTrait<GameObject, Vertex> for Pyramid {
+    fn get_mesh(&self) -> &Mesh<Vertex> {
         todo!()
     }
 }
@@ -179,19 +170,8 @@ impl Pyramid {
         out
     }
 
-    fn new(pos: Vec3, rot: Vec4, mesh: ([Vertex; 5], [TriIndexes; 4])) -> Self {
-        let out = Self {
-            pos,
-            rot,
-            mesh,
-            vao: VertexArray::new().expect("Couldn't make a VAO"),
-            vbo: Buffer::new().expect("Couldn't make a VBO"),
-            ebo: Buffer::new().expect("Couldn't make EBO"),
-        };
-
-        out.vao.bind();
-        out.vbo.bind(BufferType::Array);
-        out.ebo.bind(BufferType::ElementArray);
+    fn new(pos: Vec3, rot: Vec4, mesh: Mesh<Vertex>) -> Self {
+        let out = Self { pos, rot, mesh };
 
         unsafe {
             glVertexAttribPointer(
@@ -267,8 +247,18 @@ fn main() {
     let vert = fs::read_to_string("shaders/vert.glsl").expect("Failed to read vertex shader");
     let frag = fs::read_to_string("shaders/frag.glsl").expect("Failed to read fragment shader");
 
-    let vert = vert.as_str();
-    let frag = frag.as_str();
+    let vert_shader = vert.as_str();
+    let frag_shader = frag.as_str();
+
+    let vert: Vec<Vertex> = vec![
+        Vertex::new(vec3(0.5, -0.5, 0.5), vec2(1.0, 0.0)), // front right
+        Vertex::new(vec3(-0.5, -0.5, 0.5), vec2(0.0, 0.0)), // front left
+        Vertex::new(vec3(-0.5, -0.5, -0.5), vec2(1.0, 0.0)), // back left
+        Vertex::new(vec3(0.5, -0.5, -0.5), vec2(0.0, 0.0)), // back right
+        Vertex::new(vec3(0.0, 0.5, 0.0), vec2(0.5, 1.5)),  // top
+    ];
+
+    const INDICES: [TriIndexes; 4] = [[0, 1, 4], [1, 2, 4], [2, 3, 4], [0, 3, 4]];
 
     // Create a new device state
     let device_state = DeviceState::new();
@@ -308,7 +298,7 @@ fn main() {
         (VERTICES, INDICES),
     );
 
-    let shader_program = ShaderProgram::from_vert_frag(vert, frag).unwrap();
+    let shader_program = ShaderProgram::from_vert_frag(vert_shader, frag_shader).unwrap();
     shader_program.use_program();
 
     // World
