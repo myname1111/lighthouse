@@ -1,5 +1,10 @@
+use std::mem::size_of;
+
+use crate::graphics::{buffer::*, vertex::VertexArray};
+
 use super::world::{GameObjectTrait, World};
 use nalgebra_glm::*;
+use ogl33::*;
 
 /// Sets and gets the position and rotaion of the object
 pub trait PosRot {
@@ -177,11 +182,115 @@ pub trait ControllableMouse<GameObject: GameObjectTrait + Sized> {
     fn on_mouse(world: &mut World<GameObject>);
 }
 
-/// Implement this trait if your object has a mesh
-pub trait Mesh {
-    /// get the vertex after position and rotation
-    fn get_vert(&self);
+/// A vertex for your object
+pub trait VertexTrait: Copy {
+    /// How many elements are in a vertex
+    /// e.g. Vertex { foo: [1, 2], bar: [3, 4]} = 4
+    const SIZE: usize;
 
-    /// updates the mesh
-    fn update_mesh(&self);
+    /// return the vertex as a vector of len SIZE
+    fn as_list(&self) -> Vec<f32>;
+}
+
+/// Mesh for your object
+pub struct Mesh<Vertex: VertexTrait> {
+    /// The vertices of your object
+    pub vertices: Vec<Vertex>,
+    /// This is the size of the vertex attributes
+    pub vert_attr: Vec<usize>,
+    /// The indicies for vertices
+    /// # Example
+    /// ```
+    /// Mesh<Vertex> {
+    ///     vertices: vec![
+    ///         Vertex([1, 2, 3]),
+    ///         Vertex([3, 2, 1]),
+    ///         Vertex([5, 9, 3]),
+    ///         Vertex([2, 1, 3])
+    ///         // -snip-
+    ///     ]
+    ///     indicies: vec![[1, 2, 3], [2, 1, 2], [2, 1, 1]]
+    /// }
+    /// ```
+    pub indicies: Vec<[usize; 3]>,
+    vao: VertexArray,
+    vbo: Buffer,
+    ebo: Buffer,
+}
+
+impl<Vertex: VertexTrait> Mesh<Vertex> {
+    /// Creates a new Mesh
+    pub fn new(
+        vert: Vec<Vertex>,
+        vert_attr: Vec<usize>,
+        index: Vec<[usize; 3]>,
+    ) -> Result<Mesh<Vertex>, String> {
+        if vert[0].as_list().len() != (&vert_attr).into_iter().sum() {
+            return Err("The sum of the vertex attributes must be equal to the number of element in the vertex".into());
+        }
+
+        let out = Mesh {
+            vertices: vert,
+            vert_attr,
+            indicies: index,
+            vao: VertexArray::new().expect("Couldn't make a VAO"),
+            vbo: Buffer::new().expect("Couldn't make a VBO"),
+            ebo: Buffer::new().expect("Couldn't make EBO"),
+        };
+
+        out.vao.bind();
+        out.vbo.bind(BufferType::Array);
+        out.ebo.bind(BufferType::ElementArray);
+
+        Ok(out)
+    }
+
+    /// Updates the mesh
+    pub fn update_mesh(&self) {
+        buffer_data(
+            BufferType::Array,
+            bytemuck::cast_slice(
+                &self
+                    .vertices
+                    .clone()
+                    .into_iter()
+                    .flat_map(|vertex| vertex.as_list())
+                    .collect::<Vec<f32>>(),
+            ),
+            GL_STATIC_DRAW,
+        );
+        buffer_data(
+            BufferType::ElementArray,
+            bytemuck::cast_slice(&self.indicies),
+            GL_STATIC_DRAW,
+        );
+    }
+
+    /// Sets the vertex atrributes that will later on be passed into layout
+    pub fn set_vert_attr(&self) {
+        for (i, attr) in (&self.vert_attr).into_iter().enumerate() {
+            let pointer = size_of::<f32>() * self.vert_attr[0..i].into_iter().sum::<usize>();
+
+            unsafe {
+                glVertexAttribPointer(
+                    i.try_into().unwrap(),
+                    (*attr).try_into().unwrap(),
+                    GL_FLOAT,
+                    GL_FALSE,
+                    size_of::<Vertex>().try_into().unwrap(),
+                    pointer as *const _,
+                )
+            }
+        }
+    }
+}
+
+/// Implement this trait if your object has a mesh
+pub trait MeshTrait<GameObject, Vertex>: Object<GameObject>
+where
+    GameObject: GameObjectTrait + Sized,
+    Vertex: VertexTrait,
+{
+    /// gets the mesh
+    fn get_mesh(&self) -> Mesh<Vertex>;
 }

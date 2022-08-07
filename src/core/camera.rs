@@ -161,12 +161,6 @@ pub trait CameraTrait<GameObject: GameObjectTrait + Sized>: Object<GameObject> {
     fn matrix(&self) {
         let settings = self.get_camera_settings();
 
-        let identity = mat4(
-            1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-        );
-
-        let model = identity;
-
         let view = look_at(
             &self.get_pos(),
             &(self.get_pos() + self.get_rot().xyz()),
@@ -183,7 +177,7 @@ pub trait CameraTrait<GameObject: GameObjectTrait + Sized>: Object<GameObject> {
             &self.get_camera_settings().shader_program,
             &self.get_camera_uniform(),
         )
-        .set_uniform_matrix(false, (proj * view * model).into())
+        .set_uniform_matrix(false, (proj * view).into())
     }
 
     /// Get the camera settings

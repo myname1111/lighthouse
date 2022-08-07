@@ -16,7 +16,9 @@ use lighthouse::{
     core::{
         camera::{CameraSettings, CameraSettingsBuilder, CameraTrait},
         mouse::{MousePressed::*, StateOfMouse::*, *},
-        object::{ControllableKey, ControllableMouse, Object, PosRot},
+        object::{
+            ControllableKey, ControllableMouse, Mesh, MeshObject, Object, PosRot, VertexTrait,
+        },
         world::{self, Enviroment, GameObjectTrait, World},
     },
     graphics::{buffer::*, shader::*, texture::*, uniform::*, vertex::*, *},
@@ -27,7 +29,6 @@ use std::thread::sleep;
 use std::time::*;
 use std::{borrow::BorrowMut, fs};
 
-type Vertex = [f32; 5];
 type TriIndexes = [u32; 3];
 
 const VERTICES: [Vertex; 5] = [
@@ -42,6 +43,22 @@ const INDICES: [TriIndexes; 4] = [[0, 1, 4], [1, 2, 4], [2, 3, 4], [0, 3, 4]];
 
 const WIDTH: u16 = 800;
 const HEIGHT: u16 = 600;
+
+struct Vertex {
+    vert: Vec3,
+    tex_coord: Vec2,
+}
+
+impl VertexTrait for Vertex {
+    const SIZE: usize = 5;
+
+    fn as_list(&self) -> Vec<f32> {
+        let out = Vec::<f32>::new();
+        out.append(self.vert.into());
+        out.append(self.tex_coord.into());
+        out
+    }
+}
 
 struct Camera {
     pos: Vec3,
@@ -127,15 +144,24 @@ impl ControllableMouse<GameObject> for Camera {
 struct Pyramid {
     pos: Vec3,
     rot: Vec4,
-    mesh: ([Vertex; 5], [TriIndexes; 4]),
-    vao: VertexArray,
-    vbo: Buffer,
-    ebo: Buffer,
+    mesh: Mesh<Vertex>,
+}
+
+impl Mesh<GameObject, Vertex> for Pyramid {
+    fn get_vert(&self) -> Vec<Vertex> {}
+
+    fn get_mesh(&self) -> (Vec<Vertex>, Vec<usize>, Vec<[u32; 3]>) {
+        todo!()
+    }
+
+    fn update_mesh(&self) {
+        todo!()
+    }
 }
 
 impl Pyramid {
     fn get_vert(&self) -> [[f32; 5]; 5] {
-        let mut out: [[f32; 5]; 5] = [[0.0; 5]; 5];
+        let mut out: [[f32; 5]; 5] = self.mesh.0;
 
         for (index, vertex) in self.mesh.0.iter().enumerate() {
             let vec: [f32; 3] = rotate_vec3(
@@ -145,10 +171,9 @@ impl Pyramid {
             )
             .into();
 
-            let (one, two) = out[index].split_at_mut(3);
+            let (one, _) = out[index].split_at_mut(3);
 
             one.copy_from_slice(&vec);
-            two.copy_from_slice(&self.mesh.0[index][3..])
         }
 
         out
@@ -167,19 +192,6 @@ impl Pyramid {
         out.vao.bind();
         out.vbo.bind(BufferType::Array);
         out.ebo.bind(BufferType::ElementArray);
-
-        out
-    }
-}
-
-impl_posrot!(Pyramid);
-
-impl Object<GameObject> for Pyramid {
-    fn update(world: &mut World<GameObject>, _: usize)
-    where
-        Self: Sized,
-    {
-        world.objects.pyramid.rot.w += 0.01;
 
         unsafe {
             glVertexAttribPointer(
@@ -202,6 +214,19 @@ impl Object<GameObject> for Pyramid {
             glEnableVertexAttribArray(0);
             glEnableVertexAttribArray(1);
         }
+
+        out
+    }
+}
+
+impl_posrot!(Pyramid);
+
+impl Object<GameObject> for Pyramid {
+    fn update(world: &mut World<GameObject>, _: usize)
+    where
+        Self: Sized,
+    {
+        world.objects.pyramid.rot.w += 0.01;
 
         buffer_data(
             BufferType::Array,
