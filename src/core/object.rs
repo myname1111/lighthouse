@@ -86,6 +86,44 @@ pub trait PosRot {
     fn set_rot(&mut self) -> &mut Vec4;
 }
 
+#[macro_export]
+/// Automaticly implement [PosRot] for you
+///
+/// # Example
+///
+/// basic usage
+/// ```
+/// struct MyObject {
+///     pos: Vec3,
+///     rot: Vec4 // these two are needed to make impl_posrot work
+/// }
+///
+/// impl_posrot(MyObject) // this will implement posrot for you
+/// ```
+///
+/// todo: A derive would be better
+macro_rules! impl_posrot {
+    ($object: ident) => {
+        impl PosRot for $object {
+            fn get_pos(&self) -> &Vec3 {
+                &self.pos
+            }
+
+            fn get_rot(&self) -> &Vec4 {
+                &self.rot
+            }
+
+            fn set_pos(&mut self) -> &mut Vec3 {
+                &mut self.pos
+            }
+
+            fn set_rot(&mut self) -> &mut Vec4 {
+                &mut self.rot
+            }
+        }
+    };
+}
+
 /// Creates a new game object
 pub trait Object<GameObject: GameObjectTrait + Sized>: PosRot {
     /// update the object

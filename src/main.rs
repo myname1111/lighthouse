@@ -20,6 +20,7 @@ use lighthouse::{
         world::{self, Enviroment, GameObjectTrait, World},
     },
     graphics::{buffer::*, shader::*, texture::*, uniform::*, vertex::*, *},
+    impl_posrot,
 };
 use nalgebra_glm::*;
 use std::thread::sleep;
@@ -60,23 +61,7 @@ impl Camera {
     }
 }
 
-impl PosRot for Camera {
-    fn get_pos(&self) -> &Vec3 {
-        &self.pos
-    }
-
-    fn get_rot(&self) -> &Vec4 {
-        &self.rot
-    }
-
-    fn set_pos(&mut self) -> &mut Vec3 {
-        &mut self.pos
-    }
-
-    fn set_rot(&mut self) -> &mut Vec4 {
-        &mut self.rot
-    }
-}
+impl_posrot!(Camera);
 
 impl Object<GameObject> for Camera {
     fn update(world: &mut World<GameObject>, _: usize) {
@@ -190,23 +175,7 @@ impl Pyramid {
     }
 }
 
-impl PosRot for Pyramid {
-    fn get_pos(&self) -> &Vec3 {
-        &self.pos
-    }
-
-    fn get_rot(&self) -> &Vec4 {
-        &self.rot
-    }
-
-    fn set_pos(&mut self) -> &mut Vec3 {
-        &mut self.pos
-    }
-
-    fn set_rot(&mut self) -> &mut Vec4 {
-        &mut self.rot
-    }
-}
+impl_posrot!(Pyramid);
 
 impl Object<GameObject> for Pyramid {
     fn update(world: &mut World<GameObject>, _: usize)
