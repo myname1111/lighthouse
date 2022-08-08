@@ -132,7 +132,7 @@ macro_rules! impl_posrot {
 /// Creates a new game object
 pub trait Object<GameObject: GameObjectTrait + Sized>: PosRot {
     /// update the object
-    fn update(world: &mut World<GameObject>, index: usize)
+    fn update(world: &mut World<GameObject>, index: u32)
     where
         Self: Sized;
 }
@@ -144,7 +144,7 @@ pub trait Object<GameObject: GameObjectTrait + Sized>: PosRot {
 /// this example explains how to implement your trait for your object
 /// ```
 /// impl ControllableKey for MyObject {
-///     fn on_key() -> fn(world: &mut World, index: usize);
+///     fn on_key() -> fn(world: &mut World, index: u32);
 ///         |world, index| {
 ///             // get all keys that are pressed
 ///             for key in keys {
@@ -186,10 +186,14 @@ pub trait ControllableMouse<GameObject: GameObjectTrait + Sized> {
 pub trait VertexTrait: Copy {
     /// How many elements are in a vertex
     /// e.g. Vertex { foo: [1, 2], bar: [3, 4]} = 4
-    const SIZE: usize;
+    const SIZE: u32;
 
     /// return the vertex as a vector of len SIZE
     fn as_list(&self) -> Vec<f32>;
+
+    /// Returns the vertex after it has been transformed
+    /// rotated and translated
+    fn get_vertex(&self, pos: Vec3, rot: Vec4) -> Self;
 }
 
 /// Mesh for your object
@@ -197,7 +201,7 @@ pub struct Mesh<Vertex: VertexTrait> {
     /// The vertices of your object
     pub vertices: Vec<Vertex>,
     /// This is the size of the vertex attributes
-    pub vert_attr: Vec<usize>,
+    pub vert_attr: Vec<u32>,
     /// The indicies for vertices
     /// # Example
     /// ```
@@ -212,7 +216,7 @@ pub struct Mesh<Vertex: VertexTrait> {
     ///     indicies: vec![[1, 2, 3], [2, 1, 2], [2, 1, 1]]
     /// }
     /// ```
-    pub indicies: Vec<[usize; 3]>,
+    pub indicies: Vec<[u32; 3]>,
     vao: VertexArray,
     vbo: Buffer,
     ebo: Buffer,
@@ -222,11 +226,11 @@ impl<Vertex: VertexTrait> Mesh<Vertex> {
     /// Creates a new Mesh
     pub fn new(
         vert: Vec<Vertex>,
-        vert_attr: Vec<usize>,
-        index: Vec<[usize; 3]>,
+        vert_attr: Vec<u32>,
+        index: Vec<[u32; 3]>,
     ) -> Result<Mesh<Vertex>, String> {
-        if vert[0].as_list().len() != (&vert_attr).into_iter().sum() {
-            return Err("The sum of the vertex attributes must be equal to the number of element in the vertex".into());
+        if vert[0].as_list().len() != (&vert_attr).iter().sum::<u32>().try_into().unwrap() {
+            return Err(format!("The sum of the vertex attributes {} must be equal to the number of element in the vertex {}", (&vert_attr).iter().sum::<u32>(), vert[0].as_list().len()));
         }
 
         let out = Mesh {
@@ -242,19 +246,21 @@ impl<Vertex: VertexTrait> Mesh<Vertex> {
         out.vbo.bind(BufferType::Array);
         out.ebo.bind(BufferType::ElementArray);
 
+        out.set_vert_attr();
+
         Ok(out)
     }
 
     /// Updates the mesh
-    pub fn update_mesh(&self) {
+    pub fn update_mesh(&self, pos: Vec3, rot: Vec4) {
         buffer_data(
             BufferType::Array,
             bytemuck::cast_slice(
                 &self
                     .vertices
                     .clone()
-                    .into_iter()
-                    .flat_map(|vertex| vertex.as_list())
+                    .iter()
+                    .flat_map(|vertex| vertex.get_vertex(pos, rot).as_list())
                     .collect::<Vec<f32>>(),
             ),
             GL_STATIC_DRAW,
@@ -268,8 +274,9 @@ impl<Vertex: VertexTrait> Mesh<Vertex> {
 
     /// Sets the vertex atrributes that will later on be passed into layout
     pub fn set_vert_attr(&self) {
-        for (i, attr) in (&self.vert_attr).into_iter().enumerate() {
-            let pointer = size_of::<f32>() * self.vert_attr[0..i].into_iter().sum::<usize>();
+        for (i, attr) in (&self.vert_attr).iter().enumerate() {
+            let pointer: u32 = size_of::<f32>().try_into().unwrap();
+            let pointer = pointer * self.vert_attr[0..i].iter().sum::<u32>();
 
             unsafe {
                 glVertexAttribPointer(
@@ -279,10 +286,15 @@ impl<Vertex: VertexTrait> Mesh<Vertex> {
                     GL_FALSE,
                     size_of::<Vertex>().try_into().unwrap(),
                     pointer as *const _,
-                )
+                );
+
+                glEnableVertexAttribArray(i.try_into().unwrap())
             }
         }
     }
+
+    // /// Gets the amount of elements
+    // /// it is equvalent to
 }
 
 /// Implement this trait if your object has a mesh

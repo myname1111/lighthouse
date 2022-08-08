@@ -29,8 +29,6 @@ use std::thread::sleep;
 use std::time::*;
 use std::{borrow::BorrowMut, fs};
 
-type TriIndexes = [u32; 3];
-
 const WIDTH: u16 = 800;
 const HEIGHT: u16 = 600;
 
@@ -47,12 +45,20 @@ impl Vertex {
 }
 
 impl VertexTrait for Vertex {
-    const SIZE: usize = 5;
+    const SIZE: u32 = 5;
 
     fn as_list(&self) -> Vec<f32> {
         let mut out = Vec::<f32>::new();
         out.append(&mut Vec::from(<[f32; 3]>::from(self.vert)));
         out.append(&mut Vec::from(<[f32; 2]>::from(self.tex_coord)));
+        out
+    }
+
+    fn get_vertex(&self, pos: Vec3, rot: Vec4) -> Self {
+        let mut out = Self::new(self.vert, self.tex_coord);
+
+        out.vert = rotate_vec3(&out.vert, rot.w, &rot.xyz()) + pos;
+
         out
     }
 }
@@ -78,13 +84,13 @@ impl Camera {
 impl_posrot!(Camera);
 
 impl Object<GameObject> for Camera {
-    fn update(world: &mut World<GameObject>, _: usize) {
+    fn update(world: &mut World<GameObject>, _: u32) {
         Camera::matrix(&world.objects.camera);
         Camera::on_key(world);
     }
 }
 
-impl<'a> CameraTrait<GameObject> for Camera {
+impl CameraTrait<GameObject> for Camera {
     fn get_camera_settings(&self) -> CameraSettings {
         self.settings
     }
@@ -146,78 +152,30 @@ struct Pyramid {
 
 impl MeshTrait<GameObject, Vertex> for Pyramid {
     fn get_mesh(&self) -> &Mesh<Vertex> {
-        todo!()
+        &self.mesh
     }
 }
 
 impl Pyramid {
-    fn get_vert(&self) -> [[f32; 5]; 5] {
-        let mut out: [[f32; 5]; 5] = self.mesh.0;
-
-        for (index, vertex) in self.mesh.0.iter().enumerate() {
-            let vec: [f32; 3] = rotate_vec3(
-                &vec3(vertex[0], vertex[1], vertex[2]),
-                self.rot.w,
-                &self.rot.xyz(),
-            )
-            .into();
-
-            let (one, _) = out[index].split_at_mut(3);
-
-            one.copy_from_slice(&vec);
-        }
-
-        out
-    }
-
     fn new(pos: Vec3, rot: Vec4, mesh: Mesh<Vertex>) -> Self {
-        let out = Self { pos, rot, mesh };
-
-        unsafe {
-            glVertexAttribPointer(
-                0,
-                3,
-                GL_FLOAT,
-                GL_FALSE,
-                size_of::<Vertex>().try_into().unwrap(),
-                0 as *const _,
-            );
-            glVertexAttribPointer(
-                1,
-                2,
-                GL_FLOAT,
-                GL_FALSE,
-                size_of::<Vertex>().try_into().unwrap(),
-                size_of::<[f32; 3]>() as *const _,
-            );
-
-            glEnableVertexAttribArray(0);
-            glEnableVertexAttribArray(1);
-        }
-
-        out
+        Self { pos, rot, mesh }
     }
 }
 
 impl_posrot!(Pyramid);
 
 impl Object<GameObject> for Pyramid {
-    fn update(world: &mut World<GameObject>, _: usize)
+    fn update(world: &mut World<GameObject>, _: u32)
     where
         Self: Sized,
     {
         world.objects.pyramid.rot.w += 0.01;
 
-        buffer_data(
-            BufferType::Array,
-            bytemuck::cast_slice(&world.objects.pyramid.get_vert()),
-            GL_STATIC_DRAW,
-        );
-        buffer_data(
-            BufferType::ElementArray,
-            bytemuck::cast_slice(&world.objects.pyramid.mesh.1),
-            GL_STATIC_DRAW,
-        );
+        world
+            .objects
+            .pyramid
+            .mesh
+            .update_mesh(world.objects.pyramid.pos, world.objects.pyramid.rot)
     }
 }
 
@@ -250,7 +208,7 @@ fn main() {
     let vert_shader = vert.as_str();
     let frag_shader = frag.as_str();
 
-    let vert: Vec<Vertex> = vec![
+    let vert = vec![
         Vertex::new(vec3(0.5, -0.5, 0.5), vec2(1.0, 0.0)), // front right
         Vertex::new(vec3(-0.5, -0.5, 0.5), vec2(0.0, 0.0)), // front left
         Vertex::new(vec3(-0.5, -0.5, -0.5), vec2(1.0, 0.0)), // back left
@@ -258,7 +216,7 @@ fn main() {
         Vertex::new(vec3(0.0, 0.5, 0.0), vec2(0.5, 1.5)),  // top
     ];
 
-    const INDICES: [TriIndexes; 4] = [[0, 1, 4], [1, 2, 4], [2, 3, 4], [0, 3, 4]];
+    let index = vec![[0, 1, 4], [1, 2, 4], [2, 3, 4], [0, 3, 4]];
 
     // Create a new device state
     let device_state = DeviceState::new();
@@ -295,7 +253,7 @@ fn main() {
     let pyramid = Pyramid::new(
         vec3(0.0, 0.0, 0.0),
         vec4(0.0, 1.0, 0.0, 0.0),
-        (VERTICES, INDICES),
+        Mesh::new(vert, vec![3, 2], index).unwrap(),
     );
 
     let shader_program = ShaderProgram::from_vert_frag(vert_shader, frag_shader).unwrap();
@@ -318,7 +276,7 @@ fn main() {
         Enviroment::new(
             vec2(WIDTH.into(), HEIGHT.into()),
             win,
-            shader_program.clone(),
+            shader_program,
             device_state,
             mouse,
         ),
@@ -368,14 +326,7 @@ fn main() {
         unsafe {
             glClear(GL_COLOR_BUFFER_BIT);
             glClear(GL_DEPTH_BUFFER_BIT);
-            glDrawElements(
-                GL_TRIANGLES,
-                (size_of::<TriIndexes>() * INDICES.len())
-                    .try_into()
-                    .unwrap(),
-                GL_UNSIGNED_INT,
-                0 as *const _,
-            );
+            glDrawElements(GL_TRIANGLES, 48, GL_UNSIGNED_INT, 0 as *const _);
         }
         world.env.win.swap_window();
     }

@@ -162,7 +162,7 @@ pub trait CameraTrait<GameObject: GameObjectTrait + Sized>: Object<GameObject> {
         let settings = self.get_camera_settings();
 
         let view = look_at(
-            &self.get_pos(),
+            self.get_pos(),
             &(self.get_pos() + self.get_rot().xyz()),
             &vec3(0.0, 1.0, 0.0),
         );
