@@ -12,7 +12,6 @@ Lighthouse is a WIP game engine for my games, it is design to be simple to under
 * Abstract over some more layes
 * General simplification in api
 * Add derive to many traits
-* Use nalgebra instead of nalgebra-glm
 * No unwrap or expect
 * <s>Publish crate</s> after ECS update
 * <s>Go full ECS</s> In the next update
