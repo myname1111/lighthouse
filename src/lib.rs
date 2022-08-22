@@ -13,7 +13,7 @@
 //! And does not support non primitive uniforms
 
 #![deny(missing_docs)]
-/// Module containing core parts of the lighthouse engine
-pub mod core;
+/// Module containing ECS stuff
+pub mod ECS;
 /// Module containing all things related to [crate::graphics]
 pub mod graphics;

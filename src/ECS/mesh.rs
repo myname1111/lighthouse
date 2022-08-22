@@ -2,7 +2,7 @@ use std::mem::size_of;
 
 use crate::graphics::{buffer::*, vertex::VertexArray};
 
-use super::world::{GameObjectTrait, World};
+use super::*;
 use nalgebra_glm::*;
 use ogl33::*;
 
@@ -197,6 +197,7 @@ pub trait VertexTrait: Copy {
 }
 
 /// Mesh for your object
+#[derive(Component)]
 pub struct Mesh<Vertex: VertexTrait> {
     /// The vertices of your object
     pub vertices: Vec<Vertex>,
@@ -242,59 +243,8 @@ impl<Vertex: VertexTrait> Mesh<Vertex> {
             ebo: Buffer::new().expect("Couldn't make EBO"),
         };
 
-        out.vao.bind();
-        out.vbo.bind(BufferType::Array);
-        out.ebo.bind(BufferType::ElementArray);
-
-        out.set_vert_attr();
-
         Ok(out)
     }
-
-    /// Updates the mesh
-    pub fn update_mesh(&self, pos: Vec3, rot: Vec4) {
-        buffer_data(
-            BufferType::Array,
-            bytemuck::cast_slice(
-                &self
-                    .vertices
-                    .clone()
-                    .iter()
-                    .flat_map(|vertex| vertex.get_vertex(pos, rot).as_list())
-                    .collect::<Vec<f32>>(),
-            ),
-            GL_STATIC_DRAW,
-        );
-        buffer_data(
-            BufferType::ElementArray,
-            bytemuck::cast_slice(&self.indicies),
-            GL_STATIC_DRAW,
-        );
-    }
-
-    /// Sets the vertex atrributes that will later on be passed into layout
-    pub fn set_vert_attr(&self) {
-        for (i, attr) in (&self.vert_attr).iter().enumerate() {
-            let pointer: u32 = size_of::<f32>().try_into().unwrap();
-            let pointer = pointer * self.vert_attr[0..i].iter().sum::<u32>();
-
-            unsafe {
-                glVertexAttribPointer(
-                    i.try_into().unwrap(),
-                    (*attr).try_into().unwrap(),
-                    GL_FLOAT,
-                    GL_FALSE,
-                    size_of::<Vertex>().try_into().unwrap(),
-                    pointer as *const _,
-                );
-
-                glEnableVertexAttribArray(i.try_into().unwrap())
-            }
-        }
-    }
-
-    // /// Gets the amount of elements
-    // /// it is equvalent to
 }
 
 /// Implement this trait if your object has a mesh
@@ -305,4 +255,74 @@ where
 {
     /// gets the mesh
     fn get_mesh(&self) -> &Mesh<Vertex>;
+}
+
+#[derive(Component)]
+struct Position(Vec3);
+
+#[derive(Component)]
+struct Rotation(Vec4);
+
+struct SetupMesh;
+
+impl<'a, Vertex: VertexTrait> System<'a> for SetupMesh {
+    type SystemData = (
+        ReadStorage<'a, Position>,
+        ReadStorage<'a, Rotation>,
+        ReadStorage<'a, Mesh<Vertex>>,
+    );
+
+    fn run(&mut self, (pos, rot, mesh_vec): Self::SystemData) {
+        for (pos, rot, mesh_vec) in (&pos, &rot, &mesh_vec).join() {
+            mesh.vao.bind();
+            mesh.vbo.bind(BufferType::Array);
+            mesh.ebo.bind(BufferType::ElementArray);
+
+            for (i, attr) in (&mesh.vert_attr).iter().enumerate() {
+                let pointer: u32 = size_of::<f32>().try_into().unwrap();
+                let pointer = pointer * mesh.vert_attr[0..i].iter().sum::<u32>();
+
+                unsafe {
+                    glVertexAttribPointer(
+                        i.try_into().unwrap(),
+                        (*attr).try_into().unwrap(),
+                        GL_FLOAT,
+                        GL_FALSE,
+                        size_of::<Vertex>().try_into().unwrap(),
+                        pointer as *const _,
+                    );
+
+                    glEnableVertexAttribArray(i.try_into().unwrap())
+                }
+            }
+        }
+    }
+}
+
+struct UpdateMesh;
+
+impl<'a, Vertex: VertexTrait> System<'a> for UpdateMesh {
+    type SystemData = (ReadStorage<'a, Mesh<Vertex>>,);
+
+    fn run(&mut self, meshes: Self::SystemData) {
+        for mesh_data in meshes {
+            buffer_data(
+                BufferType::Array,
+                bytemuck::cast_slice(
+                    &mesh_data
+                        .vertices
+                        .clone()
+                        .iter()
+                        .flat_map(|vertex| vertex.get_vertex(pos, rot).as_list())
+                        .collect::<Vec<f32>>(),
+                ),
+                GL_STATIC_DRAW,
+            );
+            buffer_data(
+                BufferType::ElementArray,
+                bytemuck::cast_slice(&mesh_data.indicies),
+                GL_STATIC_DRAW,
+            );
+        }
+    }
 }

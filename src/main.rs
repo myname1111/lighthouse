@@ -13,10 +13,10 @@ use core::{
 use device_query::{DeviceQuery, DeviceState, Keycode, MouseState};
 use image::DynamicImage;
 use lighthouse::{
-    core::{
+    ECS::{
         camera::{CameraSettings, CameraSettingsBuilder, CameraTrait},
         mouse::{MousePressed::*, StateOfMouse::*, *},
-        object::{
+        mesh::{
             ControllableKey, ControllableMouse, Mesh, MeshTrait, Object, PosRot, VertexTrait,
         },
         world::{self, Enviroment, GameObjectTrait, World},
