@@ -7,12 +7,14 @@ Lighthouse is a WIP game engine for my games, it is design to be simple to under
 * I forgot
 
 # Next update brainstorming
-* Theme is simplification of the api
-* No more unsafe i stuff that isn't in graphics
-* Abstract over some more layes
-* General simplification in api
-* Add derive to many traits
+* ECS
+* Publish crate
 
 # Weekly updates
-## 8 Aug 2022
+## 8-14 Aug 2022
 the start of the updates
+## 15-21 Aug 2022
+So, i gave up one ecs. I'll just used specs instead.
+Can't believe i spent 11 days trying to make ecs work.
+
+I mean i was almost ther, I just couldn't get systems working
