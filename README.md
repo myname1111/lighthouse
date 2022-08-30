@@ -18,3 +18,13 @@ So, i gave up one ecs. I'll just used specs instead.
 Can't believe i spent 11 days trying to make ecs work.
 
 I mean i was almost ther, I just couldn't get systems working
+
+## 22-28
+Progress is slow
+
+somethings have been slowing them down
+a new project of making a website has appeared
+and life has caught up
+oh and git bugged out which caused my ide to stop working
+
+but progress should now speed up?

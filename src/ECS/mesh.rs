@@ -1,10 +1,10 @@
 use std::mem::size_of;
 
-use crate::graphics::{buffer::*, vertex::VertexArray};
+use crate::graphics::{buffer::*, vertex::VertexArray, *};
+use ogl33::*;
 
 use super::*;
 use nalgebra_glm::*;
-use ogl33::*;
 
 /// Sets and gets the position and rotaion of the object
 pub trait PosRot {
@@ -129,59 +129,6 @@ macro_rules! impl_posrot {
     };
 }
 
-/// Creates a new game object
-pub trait Object<GameObject: GameObjectTrait + Sized>: PosRot {
-    /// update the object
-    fn update(world: &mut World<GameObject>, index: u32)
-    where
-        Self: Sized;
-}
-
-/// An object trait that if implemented,
-/// your object can be controlled by your keyboard
-///
-/// # Examples
-/// this example explains how to implement your trait for your object
-/// ```
-/// impl ControllableKey for MyObject {
-///     fn on_key() -> fn(world: &mut World, index: u32);
-///         |world, index| {
-///             // get all keys that are pressed
-///             for key in keys {
-///                 // match keys
-///                 match key {
-///                     Keycode::A => println!("Key a is pressed"),
-///                 }
-///             }
-///         }
-///     }
-/// }
-/// ```
-pub trait ControllableKey<GameObject: GameObjectTrait + Sized> {
-    /// Do things with device on update
-    fn on_key(world: &mut World<GameObject>);
-}
-
-/// An object trait that if implemented,
-/// your object can be controlled by your mouse
-///
-/// # Examples
-/// this example explains how to implement your trait for your object
-/// ```
-/// // in on_mouse
-/// for pressed in mouse.get_pressed_cooldown(Duration::from_millis(100)) {
-///     match pressed {
-///         MousePressed::LeftMouse => println!("Left mouse pressed"),
-///         MousePressed::RightMouse => println!("Right mouse pressed"),
-///         _ => (),
-///     }
-/// }
-/// ```
-pub trait ControllableMouse<GameObject: GameObjectTrait + Sized> {
-    /// Do things with device on update
-    fn on_mouse(world: &mut World<GameObject>);
-}
-
 /// A vertex for your object
 pub trait VertexTrait: Copy {
     /// How many elements are in a vertex
@@ -198,7 +145,7 @@ pub trait VertexTrait: Copy {
 
 /// Mesh for your object
 #[derive(Component)]
-pub struct Mesh<Vertex: VertexTrait> {
+pub struct Mesh<Vertex: VertexTrait + 'static + Sync + Send> {
     /// The vertices of your object
     pub vertices: Vec<Vertex>,
     /// This is the size of the vertex attributes
@@ -223,7 +170,7 @@ pub struct Mesh<Vertex: VertexTrait> {
     ebo: Buffer,
 }
 
-impl<Vertex: VertexTrait> Mesh<Vertex> {
+impl<Vertex: VertexTrait + 'static + Sync + Send> Mesh<Vertex> {
     /// Creates a new Mesh
     pub fn new(
         vert: Vec<Vertex>,
@@ -245,84 +192,99 @@ impl<Vertex: VertexTrait> Mesh<Vertex> {
 
         Ok(out)
     }
-}
 
-/// Implement this trait if your object has a mesh
-pub trait MeshTrait<GameObject, Vertex>: Object<GameObject>
-where
-    GameObject: GameObjectTrait + Sized,
-    Vertex: VertexTrait,
-{
-    /// gets the mesh
-    fn get_mesh(&self) -> &Mesh<Vertex>;
-}
+    /// Setsup the mesh, is used for macro
+    pub fn setup(&self) {
+        self.vao.bind();
+        self.vbo.bind(BufferType::Array);
+        self.ebo.bind(BufferType::ElementArray);
 
+        for (i, attr) in (&self.vert_attr).iter().enumerate() {
+            let pointer: u32 = size_of::<f32>().try_into().unwrap();
+            let pointer = pointer * self.vert_attr[0..i].iter().sum::<u32>();
+
+            unsafe {
+                glVertexAttribPointer(
+                    i.try_into().unwrap(),
+                    (*attr).try_into().unwrap(),
+                    GL_FLOAT,
+                    GL_FALSE,
+                    size_of::<Vertex>().try_into().unwrap(),
+                    pointer as *const _,
+                );
+
+                glEnableVertexAttribArray(i.try_into().unwrap())
+            }
+        }
+    }
+
+    /// Updates the mesh
+    fn update(&self, pos: Position, rot: Rotation) {
+        buffer_data(
+            BufferType::Array,
+            bytemuck::cast_slice(
+                &self
+                    .vertices
+                    .clone()
+                    .iter()
+                    .flat_map(|vertex| vertex.get_vertex(pos.0, rot.0).as_list())
+                    .collect::<Vec<f32>>(),
+            ),
+            GL_STATIC_DRAW,
+        );
+        buffer_data(
+            BufferType::ElementArray,
+            bytemuck::cast_slice(&self.indicies),
+            GL_STATIC_DRAW,
+        );
+    }
+}
 #[derive(Component)]
 struct Position(Vec3);
 
 #[derive(Component)]
 struct Rotation(Vec4);
 
-struct SetupMesh;
+#[macro_export]
+/// implement setup methods systems
+/// struct_name: the name of a struct
+/// vertex: the vertex
+macro_rules! impl_setup_mesh {
+    ($struct_name:ident, $vertex:ident) => {
+        struct $struct_name;
 
-impl<'a, Vertex: VertexTrait> System<'a> for SetupMesh {
-    type SystemData = (
-        ReadStorage<'a, Position>,
-        ReadStorage<'a, Rotation>,
-        ReadStorage<'a, Mesh<Vertex>>,
-    );
+        impl<'a> System<'a> for $struct_name {
+            type SystemData = ReadStorage<'a, Mesh<$vertex>>;
 
-    fn run(&mut self, (pos, rot, mesh_vec): Self::SystemData) {
-        for (pos, rot, mesh_vec) in (&pos, &rot, &mesh_vec).join() {
-            mesh.vao.bind();
-            mesh.vbo.bind(BufferType::Array);
-            mesh.ebo.bind(BufferType::ElementArray);
-
-            for (i, attr) in (&mesh.vert_attr).iter().enumerate() {
-                let pointer: u32 = size_of::<f32>().try_into().unwrap();
-                let pointer = pointer * mesh.vert_attr[0..i].iter().sum::<u32>();
-
-                unsafe {
-                    glVertexAttribPointer(
-                        i.try_into().unwrap(),
-                        (*attr).try_into().unwrap(),
-                        GL_FLOAT,
-                        GL_FALSE,
-                        size_of::<Vertex>().try_into().unwrap(),
-                        pointer as *const _,
-                    );
-
-                    glEnableVertexAttribArray(i.try_into().unwrap())
+            fn run(&mut self, mesh_vec: Self::SystemData) {
+                for mesh in mesh_vec.join() {
+                    mesh.setup()
                 }
             }
         }
-    }
+    };
 }
 
-struct UpdateMesh;
+#[macro_export]
+/// implement update methods systems
+/// struct_name: the name of a struct
+/// vertex: the vertex
+macro_rules! impl_update_mesh {
+    ($struct_name:ident, $vertex:ident) => {
+        struct $struct_name;
 
-impl<'a, Vertex: VertexTrait> System<'a> for UpdateMesh {
-    type SystemData = (ReadStorage<'a, Mesh<Vertex>>,);
+        impl<'a> System<'a> for $struct_name {
+            type SystemData = (
+                ReadStorage<'a, Position>,
+                ReadStorage<'a, Rotation>,
+                ReadStorage<'a, Mesh<$vertex>>,
+            );
 
-    fn run(&mut self, meshes: Self::SystemData) {
-        for mesh_data in meshes {
-            buffer_data(
-                BufferType::Array,
-                bytemuck::cast_slice(
-                    &mesh_data
-                        .vertices
-                        .clone()
-                        .iter()
-                        .flat_map(|vertex| vertex.get_vertex(pos, rot).as_list())
-                        .collect::<Vec<f32>>(),
-                ),
-                GL_STATIC_DRAW,
-            );
-            buffer_data(
-                BufferType::ElementArray,
-                bytemuck::cast_slice(&mesh_data.indicies),
-                GL_STATIC_DRAW,
-            );
+            fn run(&mut self, (pos_vec, rot_vec, mesh_vec): Self::SystemData) {
+                for (pos, rot, mesh) in (&pos_vec, &rot_vec, &mesh_vec).join() {
+                    mesh.update(pos, rot)
+                }
+            }
         }
-    }
+    };
 }
