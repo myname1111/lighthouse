@@ -28,3 +28,11 @@ and life has caught up
 oh and git bugged out which caused my ide to stop working
 
 but progress should now speed up?
+
+## 3-9 Oct
+I have officialy given up
+Bevy is better in every way possible
+At least i learned not to do this EVER AGAIN!
+Goodbye
+
+I'll leave this public but will archive it
